@@ -285,13 +285,17 @@ void handleWifiStateScanConnect() {
 void ntpTimeAvailable(struct timeval *t)
 {
 	struct tm timeinfo;
-	if(!getLocalTime(&timeinfo)){
+	if(!getLocalTime(&timeinfo)) {
 		Log_Println(ntpFailed, LOGLEVEL_NOTICE);
 		return;
 	}
 	static char timeStringBuff[255];
 	snprintf(timeStringBuff, sizeof(timeStringBuff), ntpGotTime, timeinfo.tm_mday,  timeinfo.tm_mon + 1, timeinfo.tm_year + 1900, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
 	Log_Println(timeStringBuff, LOGLEVEL_NOTICE);
+	// set ESPuino's very first start date
+	if (!gPrefsSettings.isKey("firstStart")) {
+		gPrefsSettings.putULong("firstStart", t->tv_sec);
+	}
 }
 
 static bool initialStart = true;
@@ -321,6 +325,9 @@ void handleWifiStateConnectionSuccess() {
 		// zero conf, make device available as <hostname>.local
 		if (MDNS.begin(hostname.c_str())) {
 			MDNS.addService("http", "tcp", 80);
+			Log_Printf(LOGLEVEL_NOTICE, mDNSStarted, hostname.c_str());
+		} else {
+			Log_Printf(LOGLEVEL_ERROR, mDNSFailed, hostname.c_str());
 		}
 	#endif
 	delete dnsServer;
@@ -436,10 +443,37 @@ void Wlan_Cyclic(void) {
 	}
 }
 
+
+bool Wlan_ValidateHostname(String newHostname) {
+	size_t len = newHostname.length();
+	const char *hostname = newHostname.c_str();
+
+	// validation: first char alphanumerical, then alphanumerical or '-', last char alphanumerical
+	// These rules are mainly for mDNS purposes, a "pretty" hostname could have far fewer restrictions
+	bool validated = true;
+	if(len < 2 || len > 32) {
+		validated = false;
+	}
+
+	if(!isAlphaNumeric(hostname[0]) || !isAlphaNumeric(hostname[len-1])) {
+		validated = false;
+	}
+
+	for(int i = 0; i < len; i++) {
+		if(!isAlphaNumeric(hostname[i]) && hostname[i] != '-') {
+			validated = false;
+			break;
+		}
+	}
+
+	return validated;
+}
+
 bool Wlan_SetHostname(String newHostname) {
 	// hostname should just be applied after reboot
 	gPrefsSettings.putString("Hostname", newHostname);
-	return true;
+	// check if hostname is written
+	return (gPrefsSettings.getString("Hostname", "-1") == newHostname);
 }
 
 bool Wlan_AddNetworkSettings(WiFiSettings settings) {
@@ -548,8 +582,6 @@ void accessPointStart(const char *SSID, const char *password, IPAddress ip, IPAd
 
 	dnsServer->setErrorReplyCode(DNSReplyCode::NoError);
 	dnsServer->start(DNS_PORT, "*", ip);
-
-	Web_Init();
 }
 
 // Reads stored WiFi-status from NVS

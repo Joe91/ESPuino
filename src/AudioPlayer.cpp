@@ -37,8 +37,8 @@ static uint8_t AudioPlayer_MinVolume = AUDIOPLAYER_VOLUME_MIN;
 static uint8_t AudioPlayer_InitVolume = AUDIOPLAYER_VOLUME_INIT;
 
 // Playtime stats
-uint32_t playTimeSecTotal = 0;
-uint32_t playTimeSecSinceStart = 0;
+time_t playTimeSecTotal = 0;
+time_t playTimeSecSinceStart = 0;
 
 #ifdef HEADPHONE_ADJUST_ENABLE
 	static bool AudioPlayer_HeadphoneLastDetectionState;
@@ -120,7 +120,7 @@ void AudioPlayer_Init(void) {
 		xTaskCreatePinnedToCore(
 			AudioPlayer_Task,      /* Function to implement the task */
 			"mp3play",             /* Name of the task */
-			5500,                  /* Stack size in words */
+			6000,                  /* Stack size in words */
 			NULL,                  /* Task input parameter */
 			2 | portPRIVILEGE_BIT, /* Priority of the task */
 			&AudioTaskHandle,      /* Task handle. */
@@ -337,7 +337,7 @@ void AudioPlayer_Task(void *parameter) {
 	uint8_t settleCount = 0;
 	AudioPlayer_CurrentVolume = AudioPlayer_GetInitVolume();
 	audio->setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
-	audio->setVolume(AudioPlayer_CurrentVolume);
+	audio->setVolume(AudioPlayer_CurrentVolume,VOLUMECURVE);
 	audio->forceMono(gPlayProperties.currentPlayMono);
 	if (gPlayProperties.currentPlayMono) {
 		audio->setTone(3, 0, 0);
@@ -356,7 +356,7 @@ void AudioPlayer_Task(void *parameter) {
 		*/
 		if (xQueueReceive(gVolumeQueue, &currentVolume, 0) == pdPASS) {
 			Log_Printf(LOGLEVEL_INFO, newLoudnessReceivedQueue, currentVolume);
-			audio->setVolume(currentVolume);
+			audio->setVolume(currentVolume,VOLUMECURVE);
 			Web_SendWebsocketData(0, 50);
 			#ifdef MQTT_ENABLE
 				publishMqtt(topicLoudnessState, currentVolume, false);
@@ -438,7 +438,11 @@ void AudioPlayer_Task(void *parameter) {
 				case PAUSEPLAY:
 					trackCommand = NO_ACTION;
 					audio->pauseResume();
-					Log_Println(cmndPause, LOGLEVEL_INFO);
+					if (gPlayProperties.pausePlay) {
+						Log_Println(cmndResumeFromPause, LOGLEVEL_INFO);
+					} else {
+						Log_Println(cmndPause, LOGLEVEL_INFO);
+					}
 					if (gPlayProperties.saveLastPlayPosition && !gPlayProperties.pausePlay) {
 						Log_Printf(LOGLEVEL_INFO, trackPausedAtPos, audio->getFilePos(), audio->getFilePos() - audio->inBufferFilled());
 						AudioPlayer_NvsRfidWriteWrapper(gPlayProperties.playRfidTag, *(gPlayProperties.playlist + gPlayProperties.currentTrackNumber), audio->getFilePos() - audio->inBufferFilled(), gPlayProperties.playMode, gPlayProperties.currentTrackNumber, gPlayProperties.numberOfTracks);
@@ -494,47 +498,55 @@ void AudioPlayer_Task(void *parameter) {
 							publishMqtt(topicRepeatModeState, AudioPlayer_GetRepeatMode(), false);
 						#endif
 					}
-					if (gPlayProperties.currentTrackNumber > 0 || gPlayProperties.repeatPlaylist) {
-						if (audio->getAudioCurrentTime() < 5) { // play previous track when current track time is small, else play current track again
-							if (gPlayProperties.currentTrackNumber == 0 && gPlayProperties.repeatPlaylist) {
-								gPlayProperties.currentTrackNumber = gPlayProperties.numberOfTracks - 1;    // Go back to last track in loop-mode when first track is played
-							} else {
-								gPlayProperties.currentTrackNumber--;
-							}
-						}
-
-						if (gPlayProperties.saveLastPlayPosition) {
-							AudioPlayer_NvsRfidWriteWrapper(gPlayProperties.playRfidTag, *(gPlayProperties.playlist + gPlayProperties.currentTrackNumber), 0, gPlayProperties.playMode, gPlayProperties.currentTrackNumber, gPlayProperties.numberOfTracks);
-							Log_Println(trackStartAudiobook, LOGLEVEL_INFO);
-						}
-
+					if (gPlayProperties.playMode == WEBSTREAM) {
+						Log_Println(trackChangeWebstream, LOGLEVEL_INFO);
+						System_IndicateError();
+						continue;
+					} else if (gPlayProperties.playMode == LOCAL_M3U) {
 						Log_Println(cmndPrevTrack, LOGLEVEL_INFO);
-						if (!gPlayProperties.playlistFinished) {
-							audio->stopSong();
+						if (gPlayProperties.currentTrackNumber > 0) {
+							gPlayProperties.currentTrackNumber--;
+						} else {
+							System_IndicateError();
+							continue;
 						}
 					} else {
-						if (gPlayProperties.playMode == WEBSTREAM) {
-							Log_Println(trackChangeWebstream, LOGLEVEL_INFO);
-							System_IndicateError();
+						if (gPlayProperties.currentTrackNumber > 0 || gPlayProperties.repeatPlaylist) {
+							if (audio->getAudioCurrentTime() < 5) { // play previous track when current track time is small, else play current track again
+								if (gPlayProperties.currentTrackNumber == 0 && gPlayProperties.repeatPlaylist) {
+									gPlayProperties.currentTrackNumber = gPlayProperties.numberOfTracks - 1;    // Go back to last track in loop-mode when first track is played
+								} else {
+									gPlayProperties.currentTrackNumber--;
+								}
+							}
+
+							if (gPlayProperties.saveLastPlayPosition) {
+								AudioPlayer_NvsRfidWriteWrapper(gPlayProperties.playRfidTag, *(gPlayProperties.playlist + gPlayProperties.currentTrackNumber), 0, gPlayProperties.playMode, gPlayProperties.currentTrackNumber, gPlayProperties.numberOfTracks);
+								Log_Println(trackStartAudiobook, LOGLEVEL_INFO);
+							}
+
+							Log_Println(cmndPrevTrack, LOGLEVEL_INFO);
+							if (!gPlayProperties.playlistFinished) {
+								audio->stopSong();
+							}
+						} else {
+							if (gPlayProperties.saveLastPlayPosition) {
+								AudioPlayer_NvsRfidWriteWrapper(gPlayProperties.playRfidTag, *(gPlayProperties.playlist + gPlayProperties.currentTrackNumber), 0, gPlayProperties.playMode, gPlayProperties.currentTrackNumber, gPlayProperties.numberOfTracks);
+							}
+							audio->stopSong();
+							Led_Indicate(LedIndicatorType::Rewind);
+							audioReturnCode = audio->connecttoFS(gFSystem, *(gPlayProperties.playlist + gPlayProperties.currentTrackNumber));
+							// consider track as finished, when audio lib call was not successful
+							if (!audioReturnCode) {
+								System_IndicateError();
+								gPlayProperties.trackFinished = true;
+								continue;
+							}
+							Log_Println(trackStart, LOGLEVEL_INFO);
 							continue;
 						}
-						if (gPlayProperties.saveLastPlayPosition) {
-							AudioPlayer_NvsRfidWriteWrapper(gPlayProperties.playRfidTag, *(gPlayProperties.playlist + gPlayProperties.currentTrackNumber), 0, gPlayProperties.playMode, gPlayProperties.currentTrackNumber, gPlayProperties.numberOfTracks);
-						}
-						audio->stopSong();
-						Led_Indicate(LedIndicatorType::Rewind);
-						audioReturnCode = audio->connecttoFS(gFSystem, *(gPlayProperties.playlist + gPlayProperties.currentTrackNumber));
-						// consider track as finished, when audio lib call was not successful
-						if (!audioReturnCode) {
-							System_IndicateError();
-							gPlayProperties.trackFinished = true;
-							continue;
-						}
-						Log_Println(trackStart, LOGLEVEL_INFO);
-						continue;
 					}
 					break;
-
 				case FIRSTTRACK:
 					trackCommand = NO_ACTION;
 					if (gPlayProperties.pausePlay) {
@@ -705,8 +717,8 @@ void AudioPlayer_Task(void *parameter) {
 		}
 
 		// Handle IP-announcement
-		if (gPlayProperties.tellIpAddress) {
-			gPlayProperties.tellIpAddress = false;
+		if (gPlayProperties.tellMode == TTS_IP_ADDRESS) {
+			gPlayProperties.tellMode = TTS_NONE;
 			String ipText = Wlan_GetIpAddress();
 			bool speechOk;
 			#if (LANGUAGE == DE)
@@ -715,6 +727,29 @@ void AudioPlayer_Task(void *parameter) {
 			#else
 				ipText.replace(".", "point");
 				speechOk = audio->connecttospeech(ipText.c_str(),, "en");
+			#endif
+			if (!speechOk) {
+				System_IndicateError();
+			}
+		}
+
+		// Handle time-announcement
+		if (gPlayProperties.tellMode == TTS_CURRENT_TIME) {
+			gPlayProperties.tellMode = TTS_NONE;
+			struct tm timeinfo;
+			getLocalTime(&timeinfo);
+			static char timeStringBuff[64];
+			bool speechOk;
+			#if (LANGUAGE == DE)
+				snprintf(timeStringBuff, sizeof(timeStringBuff), "Es ist %02d:%02d Uhr", timeinfo.tm_hour, timeinfo.tm_min);
+				speechOk = audio->connecttospeech(timeStringBuff, "de");
+			#else
+				if (timeinfo.tm_hour > 12) {
+					snprintf(timeStringBuff, sizeof(timeStringBuff), "It is %02d:%02d PM", timeinfo.tm_hour - 12, timeinfo.tm_min);
+				} else {
+					snprintf(timeStringBuff, sizeof(timeStringBuff), "It is %02d:%02d AM", timeinfo.tm_hour, timeinfo.tm_min);
+				}
+				speechOk = audio->connecttospeech(timeStringBuff,, "en");
 			#endif
 			if (!speechOk) {
 				System_IndicateError();
@@ -1020,7 +1055,7 @@ void AudioPlayer_TrackQueueDispatcher(const char *_itemToPlay, const uint32_t _l
 		}
 
 		default:
-			Log_Println(modeDoesNotExist, LOGLEVEL_ERROR);
+			Log_Printf(LOGLEVEL_ERROR, modeInvalid, gPlayProperties.playMode);
 			gPlayProperties.playMode = NO_PLAYLIST;
 			System_IndicateError();
 	}

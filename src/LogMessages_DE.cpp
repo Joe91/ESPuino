@@ -38,6 +38,7 @@
 	const char repeatPlaylistDueToPlaymode[] = "Wiederhole Playlist aufgrund von Playmode.";
 	const char cmndStop[] = "Kommando: Stop";
 	const char cmndPause[] = "Kommando: Pause";
+	const char cmndResumeFromPause[] = "Kommando: Fortsetzen";
 	const char cmndNextTrack[] = "Kommando: Nächster Titel";
 	const char cmndPrevTrack[] = "Kommando: Vorheriger Titel";
 	const char cmndFirstTrack[] = "Kommando: Erster Titel von Playlist";
@@ -75,7 +76,7 @@
 	const char modeWebstream[] = "Modus: Webstream";
 	const char modeWebstreamM3u[] = "Modus: Webstream (lokale .m3u-Datei)";
 	const char webstreamNotAvailable[] = "Aktuell kein Webstream möglich, da keine WLAN-Verbindung vorhanden!";
-	const char modeDoesNotExist[] = "Abspielmodus existiert nicht!";
+	const char modeInvalid[] = "Ungültiger Abspielmodus %d!";
 	const char modeRepeatNone[] = "Repeatmodus: Kein Repeat";
 	const char modeRepeatTrack[] = "Repeatmodus: Aktueller Titel";
 	const char modeRepeatPlaylist[] = "Repeatmodus: Gesamte Playlist";
@@ -178,10 +179,9 @@
 	const char failedToOpenDirectory[] = "Öffnen des Verzeichnisses fehlgeschlagen";
 	const char notADirectory[] = "Kein Verzeichnis";
 	const char sdMountedMmc1BitMode[] = "Versuche SD-Karte im SD_MMC-Modus (1 Bit) zu mounten...";
-	const char sdMountedSpiMode[] = "Versuche SD-Karte wird im SPI-Modus zu mounten...";
-	const char backupRecoveryWebsite[] = "<p>Das Backup-File wird eingespielt...<br />Zur letzten Seite <a href=\"javascript:history.back()\">zur&uuml;ckkehren</a>.</p>";
+	const char sdMountedSpiMode[] = "Versuche SD-Karte im SPI-Modus zu mounten...";
 	const char restartWebsite[] = "<p>Der ESPuino wird neu gestartet...<br />Zur letzten Seite <a href=\"javascript:history.back()\">zur&uuml;ckkehren</a>.</p>";
-	const char shutdownWebsite[] = "<p>Der ESPuino wird ausgeschaltet...</p>";
+	const char shutdownWebsite[] = "Der ESPuino wird ausgeschaltet...";
 	const char mqttMsgReceived[] = "MQTT-Nachricht empfangen: [Topic: %s] [Command: %s]";
 	const char trackPausedAtPos[] = "Titel pausiert bei Position: %u (%u)";
 	const char freeHeapWithoutFtp[] = "Freier Heap-Speicher vor FTP-Instanzierung: %u";
@@ -206,7 +206,6 @@
 	const char importCountNokNvs[] = "Anzahl der ungültigen Import-Einträge: %u";
 	const char errorReadingTmpfile[] = "Beim Lesen der temporären Importdatei ist ein Fehler aufgetreten!";
 	const char errorWritingTmpfile[] = "Beim Schreiben der temporären Importdatei ist ein Fehler aufgetreten!";
-	const char eraseRfidNvsWeb[] = "<p>Die NVS-RFID-Zuweisungen werden gel&ouml;scht...<br />Zur letzten Seite <a href=\"javascript:history.back()\">zur&uuml;ckkehren</a>.</p>";
 	const char eraseRfidNvs[] = "NVS-RFID-Zuweisungen werden gelöscht...";
 	const char fwStart[] = "Starte Firmware-update via OTA...";
 	const char fwEnd[] = "Firmware-update beendet";
@@ -245,5 +244,6 @@
 	const char wifiScanResult[] = "WLAN '%s'gefunden (Signalstärke: %d dBm, Kanal: %d, MAC-Adresse: %s)";
 	const char cantConnectToWifi[] = "WLAN-Verbindung fehlgeschlagen.";
 	const char wifiSetLastSSID[] = "Schreibe letzte erfolgreiche SSID in NVS für WLAN Schnellstart: %s";
-
+	const char mDNSStarted[] = "mDNS gestartet: http://%s.local";
+	const char mDNSFailed[] = "mDNS Start fehlgeschlagen, Hostname: %s";
 #endif
