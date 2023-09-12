@@ -38,6 +38,7 @@
 	const char repeatPlaylistDueToPlaymode[] = "Repeating playlist due to playmode configured.";
 	const char cmndStop[] = "Command: stop";
 	const char cmndPause[] = "Command: pause";
+	const char cmndResumeFromPause[] = "Command: resume";
 	const char cmndNextTrack[] = "Command: next track";
 	const char cmndPrevTrack[] = "Command: previous track";
 	const char cmndFirstTrack[] = "Command: first track of playlist";
@@ -179,9 +180,8 @@
 	const char notADirectory[] = "Not a directory";
 	const char sdMountedMmc1BitMode[] = "SD card mounted in SD-MMC 1-Bit mode...";
 	const char sdMountedSpiMode[] = "Mounting SD card in SPI-mode...";
-	const char backupRecoveryWebsite[] = "<p>Backup-file is being applied...<br />Back to <a href=\"javascript:history.back()\">last page</a>.</p>";
 	const char restartWebsite[] = "<p>ESPuino is being restarted...<br />Back to <a href=\"javascript:history.back()\">last page</a>.</p>";
-	const char shutdownWebsite[] = "<p>Der ESPuino is being shutdown...</p>";
+	const char shutdownWebsite[] = "Der ESPuino is being shutdown...";
 	const char mqttMsgReceived[] = "MQTT-message received: [Topic: %s] [Command: %s]";
 	const char trackPausedAtPos[] = "Track paused at position: %u (%u)";
 	const char freeHeapWithoutFtp[] = "Free heap before FTP-allocation: %u";
@@ -206,7 +206,6 @@
 	const char importCountNokNvs[] = "Number of invalid import-entries: %u";
 	const char errorReadingTmpfile[] = "Error occured while reading from import-tmpfile";
 	const char errorWritingTmpfile[] = "Error occured while writing to import-tmpfile";
-	const char eraseRfidNvsWeb[] = "<p>NVS-RFID-assignments are being deleted...<br />Back to <a href=\"javascript:history.back()\">last page</a>.</p>";
 	const char eraseRfidNvs[] = "NVS-RFID-assignments are being deleted...";
 	const char fwStart[] = "Starting firmware-update via OTA...";
 	const char fwEnd[] = "Firmware-update finished";
@@ -245,4 +244,6 @@
 	const char wifiScanResult[] = "Found WiFi with SSID %s and signal strength %d dBm on channel %d,  BSSID %s.";
 	const char cantConnectToWifi[] = "Failed to connect to WiFi.";
 	const char wifiSetLastSSID[] = "Write last successful SSID to NVS for WiFi fast-path: %s";
+	const char mDNSStarted[] = "mDNS started: http://%s.local";
+	const char mDNSFailed[] = "mDNS failure, hostname: %s";
 #endif

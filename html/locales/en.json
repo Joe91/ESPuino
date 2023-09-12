@@ -9,7 +9,9 @@
     "info": "Info",
     "delete": "Delete",
     "cancel": "Cancel",
+    "refresh": "Refresh",
     "restartinfo": "ESPuino is being restarted...\n\nPage reloads automatically after restart finished.",
+    "shutdowninfo": "ESPuino is now switched off...\n\nPage reloads automatically when the ESPuino is switched on again..",
     "toast": {
         "rfidDetect": "RFID-tag {{rfidId}} detected.",
         "success": "Action performed successfully.",
@@ -113,6 +115,7 @@
             "idNumber": "RFID-number (12 digits)",
             "music": "Music",
             "modification": "Modification",
+            "savedassignments": "Saved RFID-assignments",
             "fileurl": {
                 "title": "File, directory or URL (^ and # aren't allowed as chars)",
                 "placeholder": "f.e. /mp3/Audiobook/Yakari/Yakari_and_Friends.mp3"
@@ -134,7 +137,8 @@
                     "14":"All tracks of a random subdirectory (random)",
                     "8":"Webradio",
                     "11":"List (files from SD and/or webstreams) from local .m3u-File"
-                }
+                },
+                "error": "Invalid playmode"
             },
             "mod": {
                 "title": "Mod",
@@ -265,7 +269,12 @@
         "nvserase": {
             "title": "Erase NVS RFID-assignments",
             "desc": "Via importer new entries will only be inserted but old ones won't be erased. Only in case an old assignment to the same entry already exists, it will be overwritten. With this function all existing rfid-assignments will be erased. Further <a href=\"https://forum.espuino.de/t/die-backupfunktion-des-espuino/508\" target=\"_blank\">infos</a> in German language.",
-            "button": "Delete assignments"
+            "button": "Delete assignments",
+            "prompt": "Erase all saved NVS RFID-assignments?"
+        },
+        "nvsdelete": {
+            "title": "Remove NVS RFID-assignment",
+            "prompt": "Remove assignment \"{{rfid}}\" ?"
         },
         "nvsimport": {
             "title": "NVS RFID-Importer",
@@ -279,5 +288,32 @@
     "forum": {
         "title": "Forum",
         "desc": "Having problems or aim to discuss about ESPuino?<br /> Join us at <a href=\"https://forum.espuino.de\" target=\"_blank\">ESPuino-Forum</a>! Especially there's a lot of (german)<br /><a href=\"https://forum.espuino.de/c/dokumentation/anleitungen/10\" target=\"_blank\">documentation</a> online!"
+    },
+    "datetime": {
+        "day": "day",
+        "days": "days",
+        "hour": "hour",
+        "hours": "hours",
+        "minute": "minute",
+        "minutes": "minutes",
+        "second": "second",
+        "seconds": "seconds"
+    },
+    "systeminfo": {
+        "title": "Information",
+        "softwareversion": "ESPuino {{softwareversion}}",
+        "gitversion": "ESPuino {{gitversion}}",
+        "arduinoversion": "Arduino Version: {{arduinoversion}} (ESP-IDF {{idfversion}})",
+        "hardware": "Hardware: {{hwmodel}}, Revision {{hwrevision}}, CPU: {{hwfreq}} MHZ",
+        "freeheap": "Free heap: {{freeheap}} Bytes",
+        "largestfreeblock": "Largest free heap-block: {{largestfreeblock}} Bytes",
+        "freepsram": "Free PS-RAM: {{freepsram}} Bytes",
+        "currentip": "Current IP-Address: {{currentip}}",
+        "rssi": "WiFi signal strength: {{rssi}} dBm",
+        "audiotimetotal": "Total audio playtime since {{firststart}}: {{audiotimetotal}}", 
+        "audiotimesincestart": "Playtime since last start: {{audiotimesincestart}}", 
+        "currvoltage": "Current battery voltage: {{currvoltage}} V", 
+        "chargelevel": "Current charge level: {{chargelevel}} %", 
+        "hallsensor": "HallEffectSensor NullFieldValue: {{hsnullfieldvalue}}, actual: {{hsactual}}, diff:{{hsdiff}}, LastWaitFor_State:{{hslastwaitforstate}} (waited:{{hswaited}} ms)" 
     }
 }

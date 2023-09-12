@@ -1,5 +1,16 @@
 ## DEV-branch
 
+* 06.09.2023: Arduino as component #261 - Thank's to @Joe91 !! 
+* 01.09.2023: Regression: start an initial WiFi scan on startup, fix redirect to captive portal
+* 31.08.2023: Show nvs rfid assignments in web-ui & allow to delete single tags
+* 31.08.2023: invoke "/rfid" endpoint (#260)
+* 22.08.2023: Unify endpoints for accesspoint.html/management.html (#258)
+* 15.08.2023: Web-ui: Change /restart endpoint to POST, refresh button for info & log modal
+* 12.08.2023: Web-ui improvements
+* 08.08.2023: check & avoid excessive "PING" calls from web-ui
+* 08.08.2023: Configurable volumecurve #256, thank's to @Niko & @Wolle
+* 08.08.2023: Refactor "/info" endpoint to make frontend/backend more independant #257 
+* 07.08.2023: LOG message for starting mDNS service
 * 04.08.2023: Support for .oga audio files (Ogg Vorbis Audio container)
 * 04.08.2023: Web-UI: Replace the template processor (#253)
 * 02.08.2023: Bugfix M3U-playlist + PREVIOUSTRACK, thank's to @Niko!

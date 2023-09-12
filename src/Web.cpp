@@ -71,11 +71,12 @@ static void handleGetWiFiConfig(AsyncWebServerRequest *request);
 static void handlePostWiFiConfig(AsyncWebServerRequest *request, JsonVariant &json);
 static void handleCoverImageRequest(AsyncWebServerRequest *request);
 static void handleWiFiScanRequest(AsyncWebServerRequest *request);
+static void handleGetRFIDRequest(AsyncWebServerRequest *request);
+static void handlePostRFIDRequest(AsyncWebServerRequest *request, JsonVariant &json);
+static void handleDeleteRFIDRequest(AsyncWebServerRequest *request);
+static void handleGetInfo(AsyncWebServerRequest *request);
 static void handleGetSettings(AsyncWebServerRequest *request);
 static void handlePostSettings(AsyncWebServerRequest *request, JsonVariant &json);
-
-
-static bool Web_DumpNvsToSd(const char *_namespace, const char *_destFile);
 
 static void onWebsocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
 static void settingsToJSON(JsonObject obj, String section);
@@ -154,6 +155,85 @@ class OneParamRewrite : public AsyncWebRewrite
 };
 
 
+// List all key in NVS for a given namespace
+// callback function is called for every key with userdefined data object
+bool listNVSKeys(const char *_namespace, void* data, bool (*callback)(const char * key, void* data)) {
+	Led_SetPause(true);          // Workaround to prevent exceptions due to Neopixel-signalisation while NVS-write
+	esp_partition_iterator_t pi; // Iterator for find
+	const esp_partition_t *nvs;  // Pointer to partition struct
+	esp_err_t result = ESP_OK;
+	const char *partname = "nvs";
+	uint8_t pagenr = 0;   // Page number in NVS
+	uint8_t i;            // Index in Entry 0..125
+	uint8_t bm;           // Bitmap for an entry
+	uint32_t offset = 0;  // Offset in nvs partition
+	uint8_t namespace_ID; // Namespace ID found
+
+	pi = esp_partition_find(ESP_PARTITION_TYPE_DATA,   // Get partition iterator for
+							ESP_PARTITION_SUBTYPE_ANY, // this partition
+							partname);
+	if (pi) {
+		nvs = esp_partition_get(pi);        // Get partition struct
+		esp_partition_iterator_release(pi); // Release the iterator
+		Log_Printf(LOGLEVEL_DEBUG, "Partition %s found, %d bytes", partname, nvs->size);
+	} else {
+		Log_Printf(LOGLEVEL_ERROR, "Partition %s not found!", partname);
+		return false;
+	}
+	namespace_ID = FindNsID(nvs, _namespace); // Find ID of our namespace in NVS
+	while (offset < nvs->size) {
+		result = esp_partition_read(nvs, offset, // Read 1 page in nvs partition
+									&buf,
+									sizeof(nvs_page));
+		if (result != ESP_OK) {
+			Log_Println("Error reading NVS!", LOGLEVEL_ERROR);
+			return false;
+		}
+
+		i = 0;
+
+		while (i < 126) {
+			bm = (buf.Bitmap[i / 4] >> ((i % 4) * 2)) & 0x03; // Get bitmap for this entry
+			if (bm == 2) {
+				if ((namespace_ID == 0xFF) || // Show all if ID = 0xFF
+					(buf.Entry[i].Ns == namespace_ID)) { // otherwise just my namespace
+					if (isNumber(buf.Entry[i].Key)) {
+						if (!callback(buf.Entry[i].Key, data)) {
+							return false;
+						}
+					}
+				}
+				i += buf.Entry[i].Span; // Next entry
+			} else {
+				i++;
+			}
+		}
+		offset += sizeof(nvs_page); // Prepare to read next page in nvs
+		pagenr++;
+	}
+	Led_SetPause(false);
+
+	return true;
+}
+
+// callback for writing a NVS entry to file
+bool DumpNvsToSdCallback(const char * key, void* data) {
+	String s = gPrefsRfid.getString(key);
+	File *file = (File *) data;
+	file->printf("%s%s%s%s\n", stringOuterDelimiter, key, stringOuterDelimiter, s.c_str());
+  	return true;
+}
+
+// Dumps all RFID-entries from NVS into a file on SD-card
+bool Web_DumpNvsToSd(const char *_namespace, const char *_destFile) {
+	File file = gFSystem.open(_destFile, FILE_WRITE);
+	if (!file) {
+		return false;
+	}
+	bool success = listNVSKeys(_namespace, &file, DumpNvsToSdCallback);
+	file.close();
+	return success;
+}
 
 // First request will return 0 results unless you start scan from somewhere else (loop/setup)
 // Do not request more often than 3-5 seconds
@@ -199,104 +279,22 @@ static void handleWiFiScanRequest(AsyncWebServerRequest *request) {
 	json = String();
 }
 
-void Web_Init(void) {
-	wServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-		AsyncWebServerResponse *response;
-
-		// const bool etag = request->hasHeader("if-None-Match") && request->getHeader("if-None-Match")->value().equals(gitRevShort);
-		const bool etag = false;
-		if (etag)
-			response = request->beginResponse(304);
-		else {
-			response = request->beginResponse_P(200, "text/html", (const uint8_t *)accesspoint_BIN, sizeof(accesspoint_BIN));
-			response->addHeader("Content-Encoding", "gzip");
-		}
-		// response->addHeader("Cache-Control", "public, max-age=31536000, immutable");
-		// response->addHeader("ETag", gitRevShort);		// use git revision as digest
-		request->send(response);
-	});
-
-	wServer.onNotFound([](AsyncWebServerRequest *request) {
-		request->redirect("/");
-	});
-
-	WWWData::registerRoutes(serveProgmemFiles);
-
-	wServer.addHandler(new AsyncCallbackJsonWebHandler("/savedSSIDs", handlePostSavedSSIDs));
-	wServer.on("/wificonfig", HTTP_GET, handleGetWiFiConfig);
-	wServer.addHandler(new AsyncCallbackJsonWebHandler("/wificonfig", handlePostWiFiConfig));
-
-	wServer.on("/restart", HTTP_GET, [](AsyncWebServerRequest *request) {
-		String url = "http://" + Wlan_GetHostname() + ".local";
-		String html = "<!DOCTYPE html>";
-		#if (LANGUAGE == DE)
-			html += "Der ESPuino wird neu gestartet...<br>Management Website: ";
-		#else
-			html += "ESPuino is being restarted...<br>Management website: ";
-		#endif
-		html += "<a href=\"" + url + "\">" + url + "</a>";
-		html += "<script>async function tryRedirect() {try {var url = \"" + url + "\";const response = await fetch(url);window.location.href = url;} catch (error) {console.log(error);setTimeout(tryRedirect, 2000);}}tryRedirect();</script>";
-		request->send(200, "text/html", html);
-		System_Restart();
-	});
-
-	wServer.on("/shutdown", HTTP_GET, [](AsyncWebServerRequest *request) {
-	#if (LANGUAGE == DE)
-		request->send(200, "text/html", "ESPuino wird ausgeschaltet...");
-	#else
-		request->send(200, "text/html", "ESPuino is being shutdown...");
-		#endif
-		System_RequestSleep();
-	});
-
-	wServer.on("/wifiscan", HTTP_GET, handleWiFiScanRequest);
-	// start a first WiFi scan (to get a WiFi list more quickly in webview)
-	WiFi.scanNetworks(true, false, true, 120);
-
-	// allow cors for local debug (https://github.com/me-no-dev/ESPAsyncWebServer/issues/1080)
-	DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "Accept, Content-Type, Authorization");
-	DefaultHeaders::Instance().addHeader("Access-Control-Allow-Credentials", "true");
-	DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
-	wServer.begin();
-	Log_Println(httpReady, LOGLEVEL_NOTICE);
-}
-
 void Web_Cyclic(void) {
 	webserverStart();
 	ws.cleanupClients();
 }
 
+// handle not found
 void notFound(AsyncWebServerRequest *request) {
-	request->send(404, "text/plain", "Not found");
-}
-
-String formatTimeToStr(time_t t) {
-
-	String sTime;
-	uint32_t s = (t / 1000);
-	static char buf[32];
-
-	// days
-	int days = (s / 86400UL);
-	if (days > 0) {
-		#if (LANGUAGE == DE)
-			sprintf(buf, "%d Tage, ", days);
-		#else
-			sprintf(buf, "%d days, ", days);
-		#endif
-		sTime = buf;
-	}
-	// hours, minues & seconds
-	int hours = (s % 86400UL) / 3600UL;
-	int minutes = (s / 60UL) % 60UL;
-	int seconds = (s % 60UL);
-	sprintf(buf, "%02d:%02d:%02d", hours, minutes, seconds);
-	sTime+= buf;
-	return sTime;
+	Log_Printf(LOGLEVEL_ERROR, "%s not found, redirect to startpage", request->url().c_str());
+	String html = "<!DOCTYPE html>Ooups - page \"" + request->url() + "\" not found (404)";
+	html += "<script>async function tryRedirect() {try {var url = \"/\";const response = await fetch(url);window.location.href = url;} catch (error) {console.log(error);setTimeout(tryRedirect, 2000);}}tryRedirect();</script>";
+	// for captive portal, send statuscode 200 & auto redirect to startpage
+	request->send(200, "text/html", html);
 }
 
 void webserverStart(void) {
-	if (Wlan_IsConnected() && !webserverStarted) {
+	if (!webserverStarted && (Wlan_IsConnected() || (WiFi.getMode() == WIFI_AP))) {
 		// attach AsyncWebSocket for Mgmt-Interface
 		ws.onEvent(onWebsocketEvent);
 		wServer.addHandler(&ws);
@@ -314,10 +312,17 @@ void webserverStart(void) {
 			if (etag)
 				response = request->beginResponse(304);
 			else {
-				if (gFSystem.exists("/.html/index.htm"))
-					response = request->beginResponse(gFSystem, "/.html/index.htm", String(), false);
-				else {
-					response = request->beginResponse_P(200, "text/html",  (const uint8_t *)management_BIN, sizeof(management_BIN));
+				if (WiFi.getMode() == WIFI_STA) {
+					// serve management.html in station-mode
+					if (gFSystem.exists("/.html/index.htm"))
+						response = request->beginResponse(gFSystem, "/.html/index.htm", String(), false);
+					else {
+						response = request->beginResponse_P(200, "text/html",  (const uint8_t *)management_BIN, sizeof(management_BIN));
+						response->addHeader("Content-Encoding", "gzip");
+				}
+				} else {
+					// serve accesspoint.html in AP-mode
+					response = request->beginResponse_P(200, "text/html", (const uint8_t *)accesspoint_BIN, sizeof(accesspoint_BIN));
 					response->addHeader("Content-Encoding", "gzip");
 				}
 			}
@@ -331,58 +336,16 @@ void webserverStart(void) {
 		// Log
 		wServer.on("/log", HTTP_GET, [](AsyncWebServerRequest *request) {
 			request->send(200, "text/plain; charset=utf-8", Log_GetRingBuffer());
+			System_UpdateActivityTimer();
 		});
 
-		// software/wifi/heap/psram-info
-		wServer.on(
-			"/info", HTTP_GET, [](AsyncWebServerRequest *request) {
-				char buffer[128];
-				String info = "ESPuino " + (String) softwareRevision;
-				info += "\nESPuino " + (String) gitRevision;
-				info += "\nArduino version: " + String(ESP_ARDUINO_VERSION_MAJOR) + "." + String(ESP_ARDUINO_VERSION_MINOR) + "." + String(ESP_ARDUINO_VERSION_PATCH) + " (ESP-IDF " + String(ESP.getSdkVersion()) + ")";
-				info += "\nHardware: " + String(ESP.getChipModel()) +  ", Revision " + String(ESP.getChipRevision()) + ", CPU: " + String((unsigned long)ESP.getCpuFreqMHz()) + "MHZ";
-				#if (LANGUAGE == DE)
-					info += "\nFreier Heap: " + String(ESP.getFreeHeap()) + " Bytes";
-					info += "\nGroesster freier Heap-Block: " + String((uint32_t)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT)) + " Bytes";
-					info += "\nFreier PSRAM: ";
-					info += (!psramInit()) ? "nicht verfuegbar" : String(ESP.getFreePsram());
-					if (Wlan_IsConnected()) {
-						IPAddress myIP = WiFi.localIP();
-						info += "\nAktuelle IP: " + String(myIP[0]) + '.' + String(myIP[1]) + '.' + String(myIP[2]) + '.' + String(myIP[3]);
-						info += "\nWLAN-Signalstaerke: " + String((int8_t)Wlan_GetRssi()) + " dBm";
-					}
-					info += "\nAudio-Gesamtspielzeit: " + formatTimeToStr(AudioPlayer_GetPlayTimeAllTime()) + " (seit letztem Start: " + formatTimeToStr(AudioPlayer_GetPlayTimeSinceStart()) + ")";
-				#else
-					info += "\nFree heap: " + String(ESP.getFreeHeap()) + " bytes";
-					info += "\nLargest free heap-block: " + String((uint32_t)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT)) + " bytes";
-					info += "\nFree PSRAM: ";
-					info += (!psramInit()) ? "not available" : String(ESP.getFreePsram());
-					if (Wlan_IsConnected()) {
-						IPAddress myIP = WiFi.localIP();
-						info += "\nCurrent IP: " + String(myIP[0]) + '.' + String(myIP[1]) + '.' + String(myIP[2]) + '.' + String(myIP[3]);
-						info += "\nWiFi signal-strength: " + String((int8_t)Wlan_GetRssi()) + " dBm";
-					}
-					info += "\nAudio total playtime: " + secondsToTimeStr(AudioPlayer_GetPlayTimeSecsAllTime()) + " (since last start: " + secondsToTimeStr(AudioPlayer_GetPlayTimeSecsSinceStart()) + ")";
-				#endif
-				#ifdef BATTERY_MEASURE_ENABLE
-					snprintf(buffer, sizeof(buffer), currentVoltageMsg, Battery_GetVoltage());
-					info += "\n" + String(buffer);
-					snprintf(buffer, sizeof(buffer), currentChargeMsg, Battery_EstimateLevel() * 100);
-					info += "\n" + String(buffer);
-				#endif
-                #ifdef HALLEFFECT_SENSOR_ENABLE
-					uint16_t sva = gHallEffectSensor.readSensorValueAverage(true);
-					int diff = sva-gHallEffectSensor.NullFieldValue();
-					snprintf(buffer, sizeof(buffer), "\nHallEffectSensor NullFieldValue:%d, actual:%d, diff:%d, LastWaitFor_State:%d (waited:%d ms)", gHallEffectSensor.NullFieldValue(), sva, diff, gHallEffectSensor.LastWaitForState(), gHallEffectSensor.LastWaitForStateMS());
-					info += buffer;
-                #endif
-				request->send_P(200, "text/plain", info.c_str());
-			});
+		// info
+		wServer.on("/info", HTTP_GET, handleGetInfo);
 
 		// NVS-backup-upload
 		wServer.on(
 			"/upload", HTTP_POST, [](AsyncWebServerRequest *request) {
-				request->send_P(200, "text/html", backupRecoveryWebsite);
+				request->send(200);
 			},
 			handleUpload);
 
@@ -438,19 +401,51 @@ void webserverStart(void) {
 		});
 
 		// ESP-shutdown
-		wServer.on("/shutdown", HTTP_GET, [](AsyncWebServerRequest *request) {
-			request->send_P(200, "text/html", shutdownWebsite);
+		wServer.on("/shutdown", HTTP_POST, [](AsyncWebServerRequest *request) {
+			request->send(200, "text/html", shutdownWebsite);
 			System_RequestSleep();
 		});
 
-		// NVS erase
-		wServer.on("/rfidnvserase", HTTP_GET, [](AsyncWebServerRequest *request) {
-			request->send_P(200, "text/html", eraseRfidNvsWeb);
+	#ifdef CONFIG_FREERTOS_USE_TRACE_FACILITY
+		// runtime task statistics
+		wServer.on("/stats", HTTP_GET, [](AsyncWebServerRequest *request){
+			AsyncResponseStream *response = request->beginResponseStream("text/html");
+			response->println("<!DOCTYPE html><html><head> <meta charset='utf-8'><title>ESPuino runtime stats</title>");
+			response->println("<meta http-equiv='refresh' content='2'>"); // refresh page every 2 seconds
+			response->println("</head><body>Tasklist:<div class='text'><pre>");
+			// show tasklist
+			char *pbuffer = (char *)calloc(2048, 1);
+			vTaskList(pbuffer);
+			response->println(pbuffer);
+			response->println("</pre></div><br><br>Runtime statistics:<div class='text'><pre>");
+			// show vTaskGetRunTimeStats()
+			vTaskGetRunTimeStats(pbuffer);
+			response->println(pbuffer);
+			response->println("</pre></div></body></html>");
+			free(pbuffer);
+			//send the response last
+			request->send(response);
+		});
+	#endif
+
+		// erase all RFID-assignments from NVS
+		wServer.on("/rfidnvserase", HTTP_POST, [](AsyncWebServerRequest *request) {
 			Log_Println(eraseRfidNvs, LOGLEVEL_NOTICE);
-			gPrefsRfid.clear();
-			Web_DumpNvsToSd("rfidTags", backupFile);
+			if (gPrefsRfid.clear()) {
+				request->send(200);
+			} else {
+				request->send(500);
+			}
+			// make a backup
+			Web_DumpNvsToSd("rfidTags", backupFile);	
+			System_UpdateActivityTimer();		
 		});
 
+		// RFID
+		wServer.on("/rfid", HTTP_GET, handleGetRFIDRequest);
+		wServer.addHandler(new AsyncCallbackJsonWebHandler("/rfid", handlePostRFIDRequest));
+		wServer.addRewrite(new OneParamRewrite("/rfid/{id}", "/rfid?id={id}") );
+		wServer.on("/rfid", HTTP_DELETE, handleDeleteRFIDRequest);
 
 		// WiFi scan
 		wServer.on("/wifiscan", HTTP_GET, handleWiFiScanRequest);
@@ -499,11 +494,10 @@ void webserverStart(void) {
 				request->send(gFSystem, "/.html/logo.svg", "image/svg+xml");
 				return;
 			};
-			request->redirect("https://www.espuino.de/espuino/Espuino32.png");
+			request->redirect("https://www.espuino.de/Espuino.webp");
 		});
 		// ESPuino favicon
-		wServer.on("/favicon", HTTP_GET, [](AsyncWebServerRequest *request) {
-			Log_Println("favicon request", LOGLEVEL_DEBUG);
+		wServer.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
 			if (gFSystem.exists("/.html/favicon.ico")) {
 				request->send(gFSystem, "/.html/favicon.png", "image/x-icon");
 				return;
@@ -526,13 +520,19 @@ void webserverStart(void) {
 
 		wServer.onNotFound(notFound);
 
-		// allow cors for local debug
+		// allow cors for local debug (https://github.com/me-no-dev/ESPAsyncWebServer/issues/1080)
+		DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "Accept, Content-Type, Authorization");
+		DefaultHeaders::Instance().addHeader("Access-Control-Allow-Credentials", "true");
 		DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
 		wServer.begin();
 		webserverStarted = true;
+		Log_Println(httpReady, LOGLEVEL_NOTICE);
+		// start a first WiFi scan (to get a WiFi list more quickly in webview)
+		WiFi.scanNetworks(true, false, true, 120);
 	}
 }
 
+unsigned long lastPongTimestamp;
 
 // process JSON to settings
 bool JSONToSettings(JsonObject doc) {
@@ -564,8 +564,8 @@ bool JSONToSettings(JsonObject doc) {
 	}
 	if (doc.containsKey("led")) {
 		// Neopixel settings
-		if (gPrefsSettings.putUInt("iLedBrightness", doc["led"]["initBrightness"].as<uint8_t>()) == 0  ||
-			gPrefsSettings.putUInt("nLedBrightness", doc["led"]["nightBrightness"].as<uint8_t>()) == 0 ) {
+		if (gPrefsSettings.putUChar("iLedBrightness", doc["led"]["initBrightness"].as<uint8_t>()) == 0  ||
+			gPrefsSettings.putUChar("nLedBrightness", doc["led"]["nightBrightness"].as<uint8_t>()) == 0 ) {
 				Log_Println("Failed to save LED settings", LOGLEVEL_ERROR);
 				return false;
 		}
@@ -653,6 +653,10 @@ bool JSONToSettings(JsonObject doc) {
 		char _fileOrUrlAscii[MAX_FILEPATH_LENTGH];
 		convertFilenameToAscii(doc["rfidAssign"]["fileOrUrl"], _fileOrUrlAscii);
 		uint8_t _playMode = doc["rfidAssign"]["playMode"];
+		if (_playMode <= 0) {
+			Log_Println("rfidAssign: Invalid playmode", LOGLEVEL_ERROR);
+			return false;
+		}
 		char rfidString[275];
 		snprintf(rfidString, sizeof(rfidString) / sizeof(rfidString[0]), "%s%s%s0%s%u%s0", stringDelimiter, _fileOrUrlAscii, stringDelimiter, stringDelimiter, _playMode, stringDelimiter);
 		gPrefsRfid.putString(_rfidIdAssinId, rfidString);
@@ -666,7 +670,11 @@ bool JSONToSettings(JsonObject doc) {
 		}
 		Web_DumpNvsToSd("rfidTags", backupFile); // Store backup-file every time when a new rfid-tag is programmed
 	} else if (doc.containsKey("ping")) {
-		Web_SendWebsocketData(0, 20);
+		if ((millis() - lastPongTimestamp) > 1000u) {
+			// send pong (keep-alive heartbeat), check for excessive calls
+			lastPongTimestamp = millis();
+			Web_SendWebsocketData(0, 20);
+		}
 		return false;
 	} else if (doc.containsKey("controls")) {
 		if (doc["controls"].containsKey("set_volume")) {
@@ -734,8 +742,8 @@ static void settingsToJSON(JsonObject obj, String section) {
 		if ((section == "") || (section == "led")) {
 			// LED settings
 			JsonObject ledObj = obj.createNestedObject("led");
-			ledObj["initBrightness"].set(gPrefsSettings.getUInt("iLedBrightness", 0));
-			ledObj["nightBrightness"].set(gPrefsSettings.getUInt("nLedBrightness", 0));
+			ledObj["initBrightness"].set(gPrefsSettings.getUChar("iLedBrightness", 0));
+			ledObj["nightBrightness"].set(gPrefsSettings.getUChar("nLedBrightness", 0));
 		}
 	#endif
 	#ifdef MEASURE_BATTERY_VOLTAGE
@@ -796,11 +804,101 @@ static void settingsToJSON(JsonObject obj, String section) {
 	#ifdef BLUETOOTH_ENABLE
 		if ((section == "") || (section == "bluetooth")) {
 			JsonObject btObj = obj.createNestedObject("bluetooth");	
-			btObj["deviceName"] = gPrefsSettings.getString("btDeviceName", "");
-			btObj["pinCode"] = gPrefsSettings.getString("btPinCode", "");
+			if (gPrefsSettings.isKey("btDeviceName")) {
+				btObj["deviceName"] = gPrefsSettings.getString("btDeviceName", "");
+			} else {
+				btObj["deviceName"] = "";
+			}
+			if (gPrefsSettings.isKey("btPinCode")) {
+				btObj["pinCode"] = gPrefsSettings.getString("btPinCode", "");
+			} else {
+				btObj["pinCode"] = "";
+			}
 		}
 	#endif
 }
+
+// handle get info
+void handleGetInfo(AsyncWebServerRequest *request) {
+
+	// param to get a single info section
+	String section = "";
+	if (request->hasParam("section")) {
+		section = request->getParam("section")->value();
+	}
+	#ifdef BOARD_HAS_PSRAM
+		SpiRamJsonDocument doc(512);
+	#else
+		StaticJsonDocument<512> doc;
+	#endif
+	JsonObject infoObj = doc.createNestedObject("info");
+	// software
+	if ((section == "") || (section == "software")) {
+		JsonObject softwareObj = infoObj.createNestedObject("software");
+		softwareObj["version"] = (String) softwareRevision;
+		softwareObj["git"] = (String) gitRevision;
+		softwareObj["arduino"] = String(ESP_ARDUINO_VERSION_MAJOR) + "." + String(ESP_ARDUINO_VERSION_MINOR) + "." + String(ESP_ARDUINO_VERSION_PATCH);
+		softwareObj["idf"] = String(ESP.getSdkVersion());
+	}
+	// hardware
+	if ((section == "") || (section == "hardware")) {
+		JsonObject hardwareObj = infoObj.createNestedObject("hardware");
+		hardwareObj["model"] = String(ESP.getChipModel());
+		hardwareObj["revision"] = ESP.getChipRevision();
+		hardwareObj["freq"] = ESP.getCpuFreqMHz();
+	}
+	// memory
+	if ((section == "") || (section == "memory")) {
+		JsonObject memoryObj = infoObj.createNestedObject("memory");
+		memoryObj["freeHeap"] = ESP.getFreeHeap();
+		memoryObj["largestFreeBlock"] = (uint32_t)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
+		if (psramInit()) {
+			memoryObj["freePSRam"] = ESP.getFreePsram();
+		}
+	}
+	// wifi
+	if ((section == "") || (section == "wifi")) {
+		JsonObject wifiObj = infoObj.createNestedObject("wifi");
+		wifiObj["ip"] = Wlan_GetIpAddress();
+		wifiObj["rssi"] = (int8_t)Wlan_GetRssi();
+	}
+	// audio
+	if ((section == "") || (section == "audio")) {
+		JsonObject audioObj = infoObj.createNestedObject("audio");
+		audioObj["playtimeTotal"] = AudioPlayer_GetPlayTimeAllTime();
+		audioObj["playtimeSinceStart"] = AudioPlayer_GetPlayTimeSinceStart();
+		audioObj["firstStart"] = gPrefsSettings.getULong("firstStart", 0); 
+	}
+	#ifdef BATTERY_MEASURE_ENABLE
+		// battery
+		if ((section == "") || (section == "battery")) {
+			JsonObject batteryObj = infoObj.createNestedObject("battery");
+			batteryObj["currVoltage"] = Battery_GetVoltage();
+			batteryObj["chargeLevel"] = Battery_EstimateLevel() * 100;
+		}
+	#endif
+    #ifdef HALLEFFECT_SENSOR_ENABLE
+		if ((section == "") || (section == "hallsensor")) {
+			// hallsensor
+			JsonObject hallObj = infoObj.createNestedObject("hallsensor");
+			uint16_t sva = gHallEffectSensor.readSensorValueAverage(true);
+			int diff = sva-gHallEffectSensor.NullFieldValue();
+
+			hallObj["nullFieldValue"] =gHallEffectSensor.NullFieldValue();
+			hallObj["actual"] = sva;
+			hallObj["diff"] = diff;
+			hallObj["lastWaitState"] = gHallEffectSensor.LastWaitForState();
+			hallObj["lastWaitMS"] = gHallEffectSensor.LastWaitForStateMS();
+		}
+    #endif
+
+	String serializedJsonString;
+	serializeJson(infoObj, serializedJsonString);
+	request->send(200, "application/json; charset=utf-8", serializedJsonString);
+	System_UpdateActivityTimer();
+}
+
+
 
 // handle get settings
 void handleGetSettings(AsyncWebServerRequest *request) {
@@ -1159,8 +1257,6 @@ void explorerHandleFileStorageTask(void *parameter) {
 // Sends a list of the content of a directory as JSON file
 // requires a GET parameter path for the directory
 void explorerHandleListRequest(AsyncWebServerRequest *request) {
-	uint32_t listStartTimestamp = millis();
-	//DynamicJsonDocument jsonBuffer(8192);
 	#ifdef BOARD_HAS_PSRAM
 		SpiRamJsonDocument jsonBuffer(65636);
 	#else
@@ -1207,7 +1303,6 @@ void explorerHandleListRequest(AsyncWebServerRequest *request) {
 	root.close();
 
 	serializeJson(obj, serializedJsonString);
-	Log_Printf(LOGLEVEL_DEBUG, "build filelist finished: %lu ms", (millis() - listStartTimestamp));
 	request->send(200, "application/json; charset=utf-8", serializedJsonString);
 }
 
@@ -1506,6 +1601,132 @@ void handlePostWiFiConfig(AsyncWebServerRequest *request, JsonVariant &json){
 	}
 }
 
+static bool tagIdToJSON(String tagId, JsonObject entry)  {
+	String s = gPrefsRfid.getString(tagId.c_str(), "-1"); // Try to lookup rfidId in NVS
+	if (!s.compareTo("-1")) {
+		return false;
+	}
+	char _file[255];
+	uint32_t _lastPlayPos = 0;
+	uint16_t _trackLastPlayed = 0;
+	uint32_t _mode = 1;
+	char *token;
+	uint8_t i = 1;
+	token = strtok((char *)s.c_str(), stringDelimiter);
+	while (token != NULL) { // Try to extract data from string after lookup
+		if (i == 1) {
+			strncpy(_file, token, sizeof(_file) / sizeof(_file[0]));
+		} else if (i == 2) {
+			_lastPlayPos = strtoul(token, NULL, 10);
+		} else if (i == 3) {
+			_mode = strtoul(token, NULL, 10);
+		} else if (i == 4) {
+			_trackLastPlayed = strtoul(token, NULL, 10);
+		}
+		i++;
+		token = strtok(NULL, stringDelimiter);
+	}
+	entry["id"] = tagId; 
+	if (_mode >= 100) {
+		entry["modId"] = _mode; 
+	} else {
+		entry["fileOrUrl"] = _file;
+		entry["playMode"] = _mode; 
+		entry["lastPlayPos"] = _lastPlayPos;
+		entry["trackLastPlayed"] = _trackLastPlayed;
+	}
+	return true;
+}
+
+// callback for writing a NVS entry to JSON
+bool DumpNvsToJSONCallback(const char * key, void* data) {
+	JsonArray *myArr = (JsonArray*) data;
+	JsonObject obj = myArr->createNestedObject();
+	return tagIdToJSON(key, obj);
+}
+
+static void handleGetRFIDRequest(AsyncWebServerRequest *request) {
+	String tagId = "";
+	if (request->hasParam("id")) {
+		tagId = request->getParam("id")->value();
+	}
+	if (tagId == "") {
+		// return all RFID assignments
+		AsyncJsonResponse *response = new AsyncJsonResponse(true);
+		JsonArray Arr = response->getRoot();
+		if (listNVSKeys("rfidTags", &Arr, DumpNvsToJSONCallback)) {
+			response->setLength();
+			request->send(response);
+		} else {
+			request->send(500, "error reading entries from NVS");
+		}
+	} else {
+		if (gPrefsRfid.isKey(tagId.c_str())) {
+			// return single RFID assignment
+			AsyncJsonResponse *response = new AsyncJsonResponse(false);
+			JsonObject obj = response->getRoot();
+			tagIdToJSON(tagId, obj);
+			response->setLength();
+			request->send(response);
+		} else {
+			// RFID assignment not found
+			request->send(404);
+		}
+	}
+}
+
+static void handlePostRFIDRequest(AsyncWebServerRequest *request, JsonVariant &json) {
+	const JsonObject& jsonObj = json.as<JsonObject>();
+
+	String tagId = jsonObj["id"];
+	String fileOrUrl = jsonObj["fileOrUrl"];
+	if (fileOrUrl.isEmpty()) {
+		fileOrUrl = "0";
+	}
+	char _fileOrUrlAscii[MAX_FILEPATH_LENTGH];
+	convertFilenameToAscii(fileOrUrl, _fileOrUrlAscii);	
+	uint8_t _playModeOrModId;
+	if (jsonObj.containsKey("modId")) {
+		_playModeOrModId = jsonObj["modId"];
+	} else {
+		_playModeOrModId = jsonObj["playMode"];
+	} 	
+	if (_playModeOrModId <= 0) {
+		Log_Println("rfidAssign: Invalid playMode or modId", LOGLEVEL_ERROR);
+		request->send(500, "text/plain; charset=utf-8", "rfidAssign: Invalid playMode or modId");
+		return;
+	}
+	char rfidString[275];
+	snprintf(rfidString, sizeof(rfidString) / sizeof(rfidString[0]), "%s%s%s0%s%u%s0", stringDelimiter, _fileOrUrlAscii, stringDelimiter, stringDelimiter, _playModeOrModId, stringDelimiter);
+	gPrefsRfid.putString(tagId.c_str(), rfidString);
+
+	String s = gPrefsRfid.getString(tagId.c_str(), "-1");
+	if (s.compareTo(rfidString)) {
+		request->send(500, "text/plain; charset=utf-8", "rfidAssign: cannot save assignment to NVS");
+		return;
+	}
+	Web_DumpNvsToSd("rfidTags", backupFile); // Store backup-file every time when a new rfid-tag is programmed
+}
+
+static void handleDeleteRFIDRequest(AsyncWebServerRequest *request) {
+	String tagId = "";
+	if (request->hasParam("id")) {
+		tagId = request->getParam("id")->value();
+	}
+	if ((tagId != "") && (gPrefsRfid.isKey(tagId.c_str()))) {
+		// stop playback, tag to delete might be in use
+		Cmd_Action(CMD_STOP);
+		if (gPrefsRfid.remove(tagId.c_str())) {
+			request->send(200, "text/plain; charset=utf-8", tagId + " removed successfuly");
+		} else {
+			request->send(500, "text/plain; charset=utf-8", "error removing tag from NVS");
+		}
+	} else {
+		request->send(404, "text/plain; charset=utf-8", "error removing tag from NVS: Tag not exists");
+	}
+}
+
+
 
 // Takes stream from file-upload and writes payload into a temporary sd-file.
 void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
@@ -1593,72 +1814,6 @@ void Web_DumpSdToNvs(const char *_filename) {
 	gFSystem.remove(_filename);
 }
 
-// Dumps all RFID-entries from NVS into a file on SD-card
-bool Web_DumpNvsToSd(const char *_namespace, const char *_destFile) {
-	Led_SetPause(true);          // Workaround to prevent exceptions due to Neopixel-signalisation while NVS-write
-	esp_partition_iterator_t pi; // Iterator for find
-	const esp_partition_t *nvs;  // Pointer to partition struct
-	esp_err_t result = ESP_OK;
-	const char *partname = "nvs";
-	uint8_t pagenr = 0;   // Page number in NVS
-	uint8_t i;            // Index in Entry 0..125
-	uint8_t bm;           // Bitmap for an entry
-	uint32_t offset = 0;  // Offset in nvs partition
-	uint8_t namespace_ID; // Namespace ID found
-
-	pi = esp_partition_find(ESP_PARTITION_TYPE_DATA,   // Get partition iterator for
-							ESP_PARTITION_SUBTYPE_ANY, // this partition
-							partname);
-	if (pi) {
-		nvs = esp_partition_get(pi);        // Get partition struct
-		esp_partition_iterator_release(pi); // Release the iterator
-		Log_Printf(LOGLEVEL_DEBUG, "Partition %s found, %d bytes", partname, nvs->size);
-	} else {
-		Log_Printf(LOGLEVEL_ERROR, "Partition %s not found!", partname);
-		return NULL;
-	}
-	namespace_ID = FindNsID(nvs, _namespace); // Find ID of our namespace in NVS
-	File backupFile = gFSystem.open(_destFile, FILE_WRITE);
-	if (!backupFile) {
-		return false;
-	}
-	while (offset < nvs->size) {
-		result = esp_partition_read(nvs, offset, // Read 1 page in nvs partition
-									&buf,
-									sizeof(nvs_page));
-		if (result != ESP_OK) {
-			Log_Println("Error reading NVS!", LOGLEVEL_ERROR);
-			return false;
-		}
-
-		i = 0;
-
-		while (i < 126) {
-			bm = (buf.Bitmap[i / 4] >> ((i % 4) * 2)) & 0x03; // Get bitmap for this entry
-			if (bm == 2) {
-				if ((namespace_ID == 0xFF) || // Show all if ID = 0xFF
-					(buf.Entry[i].Ns == namespace_ID)) { // otherwise just my namespace
-					if (isNumber(buf.Entry[i].Key)) {
-						String s = gPrefsRfid.getString((const char *)buf.Entry[i].Key);
-						backupFile.printf("%s%s%s%s\n", stringOuterDelimiter, buf.Entry[i].Key, stringOuterDelimiter, s.c_str());
-					}
-				}
-				i += buf.Entry[i].Span; // Next entry
-			} else {
-				i++;
-			}
-		}
-		offset += sizeof(nvs_page); // Prepare to read next page in nvs
-		pagenr++;
-	}
-
-	backupFile.close();
-	Led_SetPause(false);
-
-	return true;
-}
-
-
 // handle album cover image request
 static void handleCoverImageRequest(AsyncWebServerRequest *request) {
 
@@ -1671,7 +1826,9 @@ static void handleCoverImageRequest(AsyncWebServerRequest *request) {
 			request->send(200, "image/svg+xml", "<?xml version=\"1.0\" encoding=\"UTF-8\"?><svg width=\"2304\" height=\"1792\" viewBox=\"0 0 2304 1792\" transform=\"scale (0.6)\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M784 1372l16-241-16-523q-1-10-7.5-17t-16.5-7q-9 0-16 7t-7 17l-14 523 14 241q1 10 7.5 16.5t15.5 6.5q22 0 24-23zm296-29l11-211-12-586q0-16-13-24-8-5-16-5t-16 5q-13 8-13 24l-1 6-10 579q0 1 11 236v1q0 10 6 17 9 11 23 11 11 0 20-9 9-7 9-20zm-1045-340l20 128-20 126q-2 9-9 9t-9-9l-17-126 17-128q2-9 9-9t9 9zm86-79l26 207-26 203q-2 9-10 9-9 0-9-10l-23-202 23-207q0-9 9-9 8 0 10 9zm280 453zm-188-491l25 245-25 237q0 11-11 11-10 0-12-11l-21-237 21-245q2-12 12-12 11 0 11 12zm94-7l23 252-23 244q-2 13-14 13-13 0-13-13l-21-244 21-252q0-13 13-13 12 0 14 13zm94 18l21 234-21 246q-2 16-16 16-6 0-10.5-4.5t-4.5-11.5l-20-246 20-234q0-6 4.5-10.5t10.5-4.5q14 0 16 15zm383 475zm-289-621l21 380-21 246q0 7-5 12.5t-12 5.5q-16 0-18-18l-18-246 18-380q2-18 18-18 7 0 12 5.5t5 12.5zm94-86l19 468-19 244q0 8-5.5 13.5t-13.5 5.5q-18 0-20-19l-16-244 16-468q2-19 20-19 8 0 13.5 5.5t5.5 13.5zm98-40l18 506-18 242q-2 21-22 21-19 0-21-21l-16-242 16-506q0-9 6.5-15.5t14.5-6.5q9 0 15 6.5t7 15.5zm392 742zm-198-746l15 510-15 239q0 10-7.5 17.5t-17.5 7.5-17-7-8-18l-14-239 14-510q0-11 7.5-18t17.5-7 17.5 7 7.5 18zm99 19l14 492-14 236q0 11-8 19t-19 8-19-8-9-19l-12-236 12-492q1-12 9-20t19-8 18.5 8 8.5 20zm212 492l-14 231q0 13-9 22t-22 9-22-9-10-22l-6-114-6-117 12-636v-3q2-15 12-24 9-7 20-7 8 0 15 5 14 8 16 26zm1112-19q0 117-83 199.5t-200 82.5h-786q-13-2-22-11t-9-22v-899q0-23 28-33 85-34 181-34 195 0 338 131.5t160 323.5q53-22 110-22 117 0 200 83t83 201z\"/></svg>");
 		} else {
 			// no cover -> send placeholder icon for playing music from SD-card (fa-music)
-			Log_Println("no cover image for SD-card audio", LOGLEVEL_DEBUG);
+			if (gPlayProperties.playMode != NO_PLAYLIST) {
+				Log_Println("no cover image for SD-card audio", LOGLEVEL_DEBUG);
+			}
 			request->send(200, "image/svg+xml", "<?xml version=\"1.0\" encoding=\"UTF-8\"?><svg width=\"1792\" height=\"1792\" viewBox=\"0 0 1792 1792\" transform=\"scale (0.6)\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1664 224v1120q0 50-34 89t-86 60.5-103.5 32-96.5 10.5-96.5-10.5-103.5-32-86-60.5-34-89 34-89 86-60.5 103.5-32 96.5-10.5q105 0 192 39v-537l-768 237v709q0 50-34 89t-86 60.5-103.5 32-96.5 10.5-96.5-10.5-103.5-32-86-60.5-34-89 34-89 86-60.5 103.5-32 96.5-10.5q105 0 192 39v-967q0-31 19-56.5t49-35.5l832-256q12-4 28-4 40 0 68 28t28 68z\"/></svg>");
 		}
 		return;

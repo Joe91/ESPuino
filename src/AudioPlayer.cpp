@@ -337,7 +337,7 @@ void AudioPlayer_Task(void *parameter) {
 	uint8_t settleCount = 0;
 	AudioPlayer_CurrentVolume = AudioPlayer_GetInitVolume();
 	audio->setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
-	audio->setVolume(AudioPlayer_CurrentVolume);
+	audio->setVolume(AudioPlayer_CurrentVolume,VOLUMECURVE);
 	audio->forceMono(gPlayProperties.currentPlayMono);
 	if (gPlayProperties.currentPlayMono) {
 		audio->setTone(3, 0, 0);
@@ -356,7 +356,7 @@ void AudioPlayer_Task(void *parameter) {
 		*/
 		if (xQueueReceive(gVolumeQueue, &currentVolume, 0) == pdPASS) {
 			Log_Printf(LOGLEVEL_INFO, newLoudnessReceivedQueue, currentVolume);
-			audio->setVolume(currentVolume);
+			audio->setVolume(currentVolume,VOLUMECURVE);
 			Web_SendWebsocketData(0, 50);
 			#ifdef MQTT_ENABLE
 				publishMqtt(topicLoudnessState, currentVolume, false);
@@ -438,7 +438,11 @@ void AudioPlayer_Task(void *parameter) {
 				case PAUSEPLAY:
 					trackCommand = NO_ACTION;
 					audio->pauseResume();
-					Log_Println(cmndPause, LOGLEVEL_INFO);
+					if (gPlayProperties.pausePlay) {
+						Log_Println(cmndResumeFromPause, LOGLEVEL_INFO);
+					} else {
+						Log_Println(cmndPause, LOGLEVEL_INFO);
+					}
 					if (gPlayProperties.saveLastPlayPosition && !gPlayProperties.pausePlay) {
 						Log_Printf(LOGLEVEL_INFO, trackPausedAtPos, audio->getFilePos(), audio->getFilePos() - audio->inBufferFilled());
 						AudioPlayer_NvsRfidWriteWrapper(gPlayProperties.playRfidTag, *(gPlayProperties.playlist + gPlayProperties.currentTrackNumber), audio->getFilePos() - audio->inBufferFilled(), gPlayProperties.playMode, gPlayProperties.currentTrackNumber, gPlayProperties.numberOfTracks);
@@ -1051,7 +1055,7 @@ void AudioPlayer_TrackQueueDispatcher(const char *_itemToPlay, const uint32_t _l
 		}
 
 		default:
-			Log_Println(modeDoesNotExist, LOGLEVEL_ERROR);
+			Log_Printf(LOGLEVEL_ERROR, modeInvalid, gPlayProperties.playMode);
 			gPlayProperties.playMode = NO_PLAYLIST;
 			System_IndicateError();
 	}
