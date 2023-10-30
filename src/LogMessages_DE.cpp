@@ -19,10 +19,10 @@
 	const char noPlaymodeChangeIfIdle[] = "Playmode kann nicht verändert werden, wenn keine Playlist aktiv ist.";
 	const char noValidTopic[] = "Kein gültiges Topic: %s";
 	const char freePtr[] = "Ptr-Freigabe: %s (0x%04x)";
-	const char freeMemory[] = "Freier Speicher: %u";
+	const char freeMemory[] = "Freier Speicher: %u Bytes";
 	const char writeEntryToNvs[] = "[%u] Schreibe Eintrag in NVS: %s => %s";
-	const char freeMemoryAfterFree[] = "Freier Speicher nach Aufräumen: %u";
-	const char releaseMemoryOfOldPlaylist[] = "Gebe Speicher der alten Playlist frei.";
+	const char freeMemoryAfterFree[] = "Freier Speicher nach Aufräumen: %u Bytes";
+	const char releaseMemoryOfOldPlaylist[] = "Gebe Speicher der alten Playlist frei (Freier Speicher: %u Bytes)";
 	const char dirOrFileDoesNotExist[] = "Datei oder Verzeichnis existiert nicht: %s";
 	const char unableToAllocateMemForPlaylist[] = "Speicher für Playlist konnte nicht allokiert werden!";
 	const char unableToAllocateMem[] = "Speicher konnte nicht allokiert werden!";
@@ -195,6 +195,7 @@
 	const char rememberLastVolume[] = "Lautstärke vor dem letzten Shutdown wird wiederhergestellt. Dies überschreibt die Einstellung der initialen Lautstärke aus der GUI.";
 	const char unableToStartFtpServer[] = "Der FTP-Server konnte nicht gestartet werden. Entweder weil er ist bereits gestartet oder kein WLAN verfügbar ist.";
 	const char unableToTellIpAddress[] = "IP-Adresse kann nicht angesagt werden, da keine WLAN-Verbindung besteht.";
+	const char unableToTellTime[] = "Uhrzeit kann nicht angesagt werden, da keine WLAN-Verbindung besteht.";
 	const char newPlayModeStereo[] = "Neuer Modus: stereo";
 	const char newPlayModeMono[] = "Neuer Modus: mono";
 	const char portExpanderFound[] = "Port-expander gefunden";
@@ -224,7 +225,7 @@
 	const char hpOn[] = "Kopfhörer eingeschaltet";
 	const char hpOff[] = "Kopfhörer ausgeschaltet";
 	const char webTxCanceled[] = "Der Webtransfer wurde aufgrund von Inaktivität beendet.";
-	const char tryToPickRandomDir[] = "Versuche ein zufälliges Unterzeichnis zu finden aus: %s";
+	const char tryToPickRandomDir[] = "Versuche ein zufälliges Unterverzeichnis zu finden aus: %s";
 	const char pickedRandomDir[] = "Zufällig ausgewähltes Unterverzeichnis: %s";
 	const char wrongWakeUpGpio[] = "Der gewählte GPIO ist nicht vom Typ RTC und unterstützt daher das Aufwecken des ESP32 nicht! (GPIO: %u)";
 	const char currentlyPlaying[] = "'%s' wird abgespielt (%d von %d)";

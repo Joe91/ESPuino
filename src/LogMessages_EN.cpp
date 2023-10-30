@@ -19,10 +19,10 @@
 	const char noPlaymodeChangeIfIdle[] = "Playlist cannot be adjusted while no playlist is active.";
 	const char noValidTopic[] = "No valid MQTT-topic: %s";
 	const char freePtr[] = "Releasing Pointer: %s (0x%04x)";
-	const char freeMemory[] = "Free memory: %u";
+	const char freeMemory[] = "Free memory: %u Bytes";
 	const char writeEntryToNvs[] = "[%u] Storing data to NVS: %s => %s";
-	const char freeMemoryAfterFree[] = "Free memory after cleaning: %u";
-	const char releaseMemoryOfOldPlaylist[] = "Releasing memory of old playlist.";
+	const char freeMemoryAfterFree[] = "Free memory after cleaning: %u Bytes";
+	const char releaseMemoryOfOldPlaylist[] = "Releasing memory of old playlist (Free memory: %u Bytes).";
 	const char dirOrFileDoesNotExist[] = "File of directory does not exist: %s";
 	const char unableToAllocateMemForPlaylist[] = "Unable to allocate memory for playlist!";
 	const char unableToAllocateMem[] = "Unable to allocate memory!";
@@ -195,6 +195,7 @@
 	const char rememberLastVolume[] = "Restored volume used before last shutdown. This overwrites the initial volume configured via webgui.";
 	const char unableToStartFtpServer[] = "FTP-server cannot be started. This is because FTP-service is already active or because WiFi is unavailable.";
 	const char unableToTellIpAddress[] = "IP-address can't be announced as there's no WiFi-connection available.";
+	const char unableToTellTime[] = "Time can't be announced as there's no WiFi-connection available.";
 	const char newPlayModeStereo[] = "New mode: stereo";
 	const char newPlayModeMono[] = "New mode: mono";
 	const char portExpanderFound[] = "Port-expander found";

@@ -139,7 +139,7 @@ void AudioPlayer_Exit(void) {
 		if (!gPlayProperties.pausePlay && (gPlayProperties.playMode == AUDIOBOOK || gPlayProperties.playMode == AUDIOBOOK_LOOP)) {
 			AudioPlayer_TrackControlToQueueSender(PAUSEPLAY);
 			while (!gPlayProperties.pausePlay) {    // Make sure to wait until playback is paused in order to be sure that playposition saved in NVS
-				vTaskDelay(portTICK_RATE_MS * 100u);
+				vTaskDelay(portTICK_PERIOD_MS * 100u);
 			}
 		}
 	#endif
@@ -726,7 +726,7 @@ void AudioPlayer_Task(void *parameter) {
 				speechOk = audio->connecttospeech(ipText.c_str(), "de");
 			#else
 				ipText.replace(".", "point");
-				speechOk = audio->connecttospeech(ipText.c_str(),, "en");
+				speechOk = audio->connecttospeech(ipText.c_str(), "en");
 			#endif
 			if (!speechOk) {
 				System_IndicateError();
@@ -749,7 +749,7 @@ void AudioPlayer_Task(void *parameter) {
 				} else {
 					snprintf(timeStringBuff, sizeof(timeStringBuff), "It is %02d:%02d AM", timeinfo.tm_hour, timeinfo.tm_min);
 				}
-				speechOk = audio->connecttospeech(timeStringBuff,, "en");
+				speechOk = audio->connecttospeech(timeStringBuff, "en");
 			#endif
 			if (!speechOk) {
 				System_IndicateError();
@@ -898,7 +898,7 @@ void AudioPlayer_TrackQueueDispatcher(const char *_itemToPlay, const uint32_t _l
 		if (!gPlayProperties.pausePlay && (gPlayProperties.playMode == AUDIOBOOK || gPlayProperties.playMode == AUDIOBOOK_LOOP)) {
 			AudioPlayer_TrackControlToQueueSender(PAUSEPLAY);
 			while (!gPlayProperties.pausePlay) {    // Make sure to wait until playback is paused in order to be sure that playposition saved in NVS
-				vTaskDelay(portTICK_RATE_MS * 100u);
+				vTaskDelay(portTICK_PERIOD_MS * 100u);
 			}
 		}
 	#endif
@@ -914,7 +914,7 @@ void AudioPlayer_TrackQueueDispatcher(const char *_itemToPlay, const uint32_t _l
 
 	if (_playMode != WEBSTREAM) {
 		if (_playMode == RANDOM_SUBDIRECTORY_OF_DIRECTORY || _playMode == RANDOM_SUBDIRECTORY_OF_DIRECTORY_ALL_TRACKS_OF_DIR_RANDOM) {
-			char *tmp = SdCard_pickRandomSubdirectory(filename);     // *filename (input): target-directory  //   *filename (output): random subdirectory
+			const char *tmp = SdCard_pickRandomSubdirectory(filename);     // *filename (input): target-directory  //   *filename (output): random subdirectory
 			if (tmp == NULL) {  // If error occured while extracting random subdirectory
 				musicFiles = NULL;
 			} else {
@@ -944,7 +944,7 @@ void AudioPlayer_TrackQueueDispatcher(const char *_itemToPlay, const uint32_t _l
 		if (!gPlayProperties.pausePlay) {
 			AudioPlayer_TrackControlToQueueSender(STOP);
 			while (!gPlayProperties.pausePlay) {
-				vTaskDelay(portTICK_RATE_MS * 10u);
+				vTaskDelay(portTICK_PERIOD_MS * 10u);
 			}
 		}
 
@@ -1070,6 +1070,11 @@ void AudioPlayer_TrackQueueDispatcher(const char *_itemToPlay, const uint32_t _l
 /* Wraps putString for writing settings into NVS for RFID-cards.
    Returns number of characters written. */
 size_t AudioPlayer_NvsRfidWriteWrapper(const char *_rfidCardId, const char *_track, const uint32_t _playPosition, const uint8_t _playMode, const uint16_t _trackLastPlayed, const uint16_t _numberOfTracks) {
+	if (_playMode == NO_PLAYLIST) {
+		// writing back to NVS with NO_PLAYLIST seems to be a bug - Todo: Find the cause here
+		Log_Printf(LOGLEVEL_ERROR, modeInvalid, _playMode);
+		return 0;
+	}
 	Led_SetPause(true); // Workaround to prevent exceptions due to Neopixel-signalisation while NVS-write
 	char prefBuf[275];
 	char trackBuf[255];
@@ -1078,7 +1083,7 @@ size_t AudioPlayer_NvsRfidWriteWrapper(const char *_rfidCardId, const char *_tra
 	// If it's a directory we just want to play/save basename(path)
 	if (_numberOfTracks > 1) {
 		const char s = '/';
-		char *last = strrchr(_track, s);
+		const char *last = strrchr(_track, s);
 		char *first = strchr(_track, s);
 		unsigned long substr = last - first + 1;
 		if (substr <= sizeof(trackBuf) / sizeof(trackBuf[0])) {

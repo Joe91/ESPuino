@@ -15,7 +15,8 @@
 #endif
 
 void SdCard_Init(void) {
-	#if !defined(SD_MMC_1BIT_MODE) && !defined(SINGLE_SPI_ENABLE)
+	#ifdef NO_SDCARD 
+		// Initialize without any SD card, e.g. for webplayer only
 		Log_Println("Init without SD card ", LOGLEVEL_NOTICE);
 		return
 	#endif
@@ -157,7 +158,7 @@ char *SdCard_pickRandomSubdirectory(char *_directory) {
 	// Look if file/folder requested really exists. If not => break.
 	File directory = gFSystem.open(_directory);
 	if (!directory) {
-		Log_Println(dirOrFileDoesNotExist, LOGLEVEL_ERROR);
+		Log_Printf(LOGLEVEL_ERROR, dirOrFileDoesNotExist, _directory);
 		return NULL;
 	}
 	Log_Printf(LOGLEVEL_NOTICE, tryToPickRandomDir, _directory);
@@ -243,12 +244,11 @@ char *SdCard_pickRandomSubdirectory(char *_directory) {
 char **SdCard_ReturnPlaylist(const char *fileName, const uint32_t _playMode) {
 	static char **files;
 	char *serializedPlaylist = NULL;
-	char fileNameBuf[255];
 	bool enablePlaylistFromM3u = false;
-	uint32_t listStartTimestamp = millis();
+	//uint32_t listStartTimestamp = millis();
 
 	if (files != NULL) { // If **ptr already exists, de-allocate its memory
-		Log_Println(releaseMemoryOfOldPlaylist, LOGLEVEL_DEBUG);
+		Log_Printf(LOGLEVEL_DEBUG, releaseMemoryOfOldPlaylist, ESP.getFreeHeap());
 		freeMultiCharArray(files, strtoul(files[0], NULL, 10) + 1);
 		Log_Printf(LOGLEVEL_DEBUG, freeMemoryAfterFree, ESP.getFreeHeap());
 	}
@@ -256,7 +256,7 @@ char **SdCard_ReturnPlaylist(const char *fileName, const uint32_t _playMode) {
 	// Look if file/folder requested really exists. If not => break.
 	File fileOrDirectory = gFSystem.open(fileName);
 	if (!fileOrDirectory) {
-		Log_Println(dirOrFileDoesNotExist, LOGLEVEL_ERROR);
+		Log_Printf(LOGLEVEL_ERROR, dirOrFileDoesNotExist, fileName);
 		return nullptr;
 	}
 
@@ -320,6 +320,7 @@ char **SdCard_ReturnPlaylist(const char *fileName, const uint32_t _playMode) {
 	// Don't read from m3u-file. Means: read filenames from SD and make playlist of it
 	if (!enablePlaylistFromM3u) {
 		Log_Println(playlistGen, LOGLEVEL_NOTICE);
+		char fileNameBuf[255];
 		// File-mode
 		if (!fileOrDirectory.isDirectory()) {
 			files = (char **) x_malloc(sizeof(char *) * 2);
@@ -415,7 +416,7 @@ char **SdCard_ReturnPlaylist(const char *fileName, const uint32_t _playMode) {
 	}
 	snprintf(files[0], 5,  "%u", cnt);
 	Log_Printf(LOGLEVEL_NOTICE, numberOfValidFiles, cnt);
-	Log_Printf(LOGLEVEL_DEBUG, "build playlist from SD-card finished: %lu ms", (millis() - listStartTimestamp));
+	// Log_Printf(LOGLEVEL_DEBUG, "build playlist from SD-card finished: %lu ms", (millis() - listStartTimestamp));
 
 	return &(files[1]); // return ptr+1 (starting at 1st payload-item); ptr+0 contains number of items
 }

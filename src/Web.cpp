@@ -230,6 +230,11 @@ bool Web_DumpNvsToSd(const char *_namespace, const char *_destFile) {
 	if (!file) {
 		return false;
 	}
+	// write UTF-8 BOM
+	file.write(0xEF);
+	file.write(0xBB);
+	file.write(0xBF);
+	// list all NVS keys
 	bool success = listNVSKeys(_namespace, &file, DumpNvsToSdCallback);
 	file.close();
 	return success;
@@ -431,13 +436,13 @@ void webserverStart(void) {
 		// erase all RFID-assignments from NVS
 		wServer.on("/rfidnvserase", HTTP_POST, [](AsyncWebServerRequest *request) {
 			Log_Println(eraseRfidNvs, LOGLEVEL_NOTICE);
+			// make a backup first
+			Web_DumpNvsToSd("rfidTags", backupFile);	
 			if (gPrefsRfid.clear()) {
 				request->send(200);
 			} else {
 				request->send(500);
 			}
-			// make a backup
-			Web_DumpNvsToSd("rfidTags", backupFile);	
 			System_UpdateActivityTimer();		
 		});
 
@@ -635,10 +640,10 @@ bool JSONToSettings(JsonObject doc) {
 	} else if (doc.containsKey("rfidMod")) {
 		const char *_rfidIdModId = doc["rfidMod"]["rfidIdMod"];
 		uint8_t _modId = doc["rfidMod"]["modId"];
-		char rfidString[12];
 		if (_modId <= 0) {
 			gPrefsRfid.remove(_rfidIdModId);
 		} else {
+			char rfidString[12];
 			snprintf(rfidString, sizeof(rfidString) / sizeof(rfidString[0]), "%s0%s0%s%u%s0", stringDelimiter, stringDelimiter, stringDelimiter, _modId, stringDelimiter);
 			gPrefsRfid.putString(_rfidIdModId, rfidString);
 
@@ -1026,7 +1031,7 @@ void onWebsocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsE
 		Log_Printf(LOGLEVEL_DEBUG, "ws[%s][%u] pong[%u]: %s", server->url(), client->id(), len, (len) ? (char *)data : "");
 	} else if (type == WS_EVT_DATA) {
 		//data packet
-		AwsFrameInfo *info = (AwsFrameInfo *)arg;
+		const AwsFrameInfo *info = (AwsFrameInfo *)arg;
 		if (info && info->final && info->index == 0 && info->len == len && client && len > 0) {
 			//the whole message is in a single frame and we got all of it's data
 			//Serial.printf("ws[%s][%u] %s-message[%llu]: ", server->url(), client->id(), (info->opcode == WS_TEXT) ? "text" : "binary", info->len);
@@ -1078,7 +1083,7 @@ void explorerHandleFileUpload(AsyncWebServerRequest *request, String filename, s
 		String utf8FilePath;
 		static char filePath[MAX_FILEPATH_LENTGH];
 		if (request->hasParam("path")) {
-			AsyncWebParameter *param = request->getParam("path");
+			const AsyncWebParameter *param = request->getParam("path");
 			utf8Folder = param->value() + "/";
 		}
 		utf8FilePath = utf8Folder + filename;
@@ -1264,11 +1269,11 @@ void explorerHandleListRequest(AsyncWebServerRequest *request) {
 	#endif
 
 	String serializedJsonString;
-	AsyncWebParameter *param;
 	char filePath[MAX_FILEPATH_LENTGH];
 	JsonArray obj = jsonBuffer.createNestedArray();
 	File root;
 	if (request->hasParam("path")) {
+		AsyncWebParameter *param;
 		param = request->getParam("path");
 		convertFilenameToAscii(param->value(), filePath);
 		root = gFSystem.open(filePath);
@@ -1296,7 +1301,9 @@ void explorerHandleListRequest(AsyncWebServerRequest *request) {
 			std::string path = filePath;
 			std::string fileName = path.substr(path.find_last_of("/") + 1);
 			entry["name"] = fileName;
-			entry["dir"].set(isDir);
+			if (isDir) {
+				entry["dir"].set(true);
+			}
 		}
 		MyfileName = root.getNextFileName(&isDir);
 	}
@@ -1382,9 +1389,9 @@ void explorerHandleDownloadRequest(AsyncWebServerRequest *request) {
 // requires a GET parameter path to the file or directory
 void explorerHandleDeleteRequest(AsyncWebServerRequest *request) {
 	File file;
-	AsyncWebParameter *param;
 	char filePath[MAX_FILEPATH_LENTGH];
 	if (request->hasParam("path")) {
+		AsyncWebParameter *param;
 		param = request->getParam("path");
 		convertFilenameToAscii(param->value(), filePath);
 		if (gFSystem.exists(filePath)) {
@@ -1418,9 +1425,9 @@ void explorerHandleDeleteRequest(AsyncWebServerRequest *request) {
 // Handles create request of a directory
 // requires a GET parameter path to the new directory
 void explorerHandleCreateRequest(AsyncWebServerRequest *request) {
-	AsyncWebParameter *param;
-	char filePath[MAX_FILEPATH_LENTGH];
 	if (request->hasParam("path")) {
+		AsyncWebParameter *param;
+		char filePath[MAX_FILEPATH_LENTGH];
 		param = request->getParam("path");
 		convertFilenameToAscii(param->value(), filePath);
 		if (gFSystem.mkdir(filePath)) {
@@ -1438,11 +1445,11 @@ void explorerHandleCreateRequest(AsyncWebServerRequest *request) {
 // requires a GET parameter srcpath to the old file or directory name
 // requires a GET parameter dstpath to the new file or directory name
 void explorerHandleRenameRequest(AsyncWebServerRequest *request) {
-	AsyncWebParameter *srcPath;
-	AsyncWebParameter *dstPath;
-	char srcFullFilePath[MAX_FILEPATH_LENTGH];
-	char dstFullFilePath[MAX_FILEPATH_LENTGH];
 	if (request->hasParam("srcpath") && request->hasParam("dstpath")) {
+		AsyncWebParameter *srcPath;
+		AsyncWebParameter *dstPath;
+		char srcFullFilePath[MAX_FILEPATH_LENTGH];
+		char dstFullFilePath[MAX_FILEPATH_LENTGH];
 		srcPath = request->getParam("srcpath");
 		dstPath = request->getParam("dstpath");
 		convertFilenameToAscii(srcPath->value(), srcFullFilePath);
@@ -1470,9 +1477,9 @@ void explorerHandleAudioRequest(AsyncWebServerRequest *request) {
 	AsyncWebParameter *param;
 	String playModeString;
 	uint32_t playMode;
-	char filePath[MAX_FILEPATH_LENTGH];
 	if (request->hasParam("path") && request->hasParam("playmode")) {
 		param = request->getParam("path");
+		char filePath[MAX_FILEPATH_LENTGH];
 		convertFilenameToAscii(param->value(), filePath);
 		param = request->getParam("playmode");
 		playModeString = param->value();
@@ -1539,8 +1546,8 @@ void handlePostSavedSSIDs(AsyncWebServerRequest *request, JsonVariant &json) {
 }
 
 void handleDeleteSavedSSIDs(AsyncWebServerRequest *request) {
-	AsyncWebParameter* p = request->getParam("ssid");
-	String ssid = p->value();
+	const AsyncWebParameter* p = request->getParam("ssid");
+	const String ssid = p->value();
 
 	bool succ = Wlan_DeleteNetwork(ssid);
 
@@ -1652,7 +1659,7 @@ static void handleGetRFIDRequest(AsyncWebServerRequest *request) {
 	}
 	if (tagId == "") {
 		// return all RFID assignments
-		AsyncJsonResponse *response = new AsyncJsonResponse(true);
+		AsyncJsonResponse *response = new AsyncJsonResponse(true, 8192);
 		JsonArray Arr = response->getRoot();
 		if (listNVSKeys("rfidTags", &Arr, DumpNvsToJSONCallback)) {
 			response->setLength();
@@ -1679,6 +1686,11 @@ static void handlePostRFIDRequest(AsyncWebServerRequest *request, JsonVariant &j
 	const JsonObject& jsonObj = json.as<JsonObject>();
 
 	String tagId = jsonObj["id"];
+	if (tagId.isEmpty()) {
+		Log_Println("/rfid (POST): Missing tag id", LOGLEVEL_ERROR);
+		request->send(500, "text/plain; charset=utf-8", "/rfid (POST): Missing tag id");
+		return;
+	}
 	String fileOrUrl = jsonObj["fileOrUrl"];
 	if (fileOrUrl.isEmpty()) {
 		fileOrUrl = "0";
@@ -1692,8 +1704,8 @@ static void handlePostRFIDRequest(AsyncWebServerRequest *request, JsonVariant &j
 		_playModeOrModId = jsonObj["playMode"];
 	} 	
 	if (_playModeOrModId <= 0) {
-		Log_Println("rfidAssign: Invalid playMode or modId", LOGLEVEL_ERROR);
-		request->send(500, "text/plain; charset=utf-8", "rfidAssign: Invalid playMode or modId");
+		Log_Println("/rfid (POST): Invalid playMode or modId", LOGLEVEL_ERROR);
+		request->send(500, "text/plain; charset=utf-8", "/rfid (POST): Invalid playMode or modId");
 		return;
 	}
 	char rfidString[275];
@@ -1702,10 +1714,16 @@ static void handlePostRFIDRequest(AsyncWebServerRequest *request, JsonVariant &j
 
 	String s = gPrefsRfid.getString(tagId.c_str(), "-1");
 	if (s.compareTo(rfidString)) {
-		request->send(500, "text/plain; charset=utf-8", "rfidAssign: cannot save assignment to NVS");
+		request->send(500, "text/plain; charset=utf-8", "/rfid (POST): cannot save assignment to NVS");
 		return;
 	}
 	Web_DumpNvsToSd("rfidTags", backupFile); // Store backup-file every time when a new rfid-tag is programmed
+	// return the new/modified RFID assignment
+	AsyncJsonResponse *response = new AsyncJsonResponse(false);
+	JsonObject obj = response->getRoot();
+	tagIdToJSON(tagId, obj);
+	response->setLength();
+	request->send(response);
 }
 
 static void handleDeleteRFIDRequest(AsyncWebServerRequest *request) {
@@ -1713,15 +1731,23 @@ static void handleDeleteRFIDRequest(AsyncWebServerRequest *request) {
 	if (request->hasParam("id")) {
 		tagId = request->getParam("id")->value();
 	}
-	if ((tagId != "") && (gPrefsRfid.isKey(tagId.c_str()))) {
+	if (tagId.isEmpty()) {
+		Log_Println("/rfid (DELETE): Missing tag id", LOGLEVEL_ERROR);
+		request->send(500, "text/plain; charset=utf-8", "/rfid (DELETE): Missing tag id");
+		return;
+	}
+	if (gPrefsRfid.isKey(tagId.c_str())) {
 		// stop playback, tag to delete might be in use
 		Cmd_Action(CMD_STOP);
 		if (gPrefsRfid.remove(tagId.c_str())) {
+			Log_Printf(LOGLEVEL_INFO, "/rfid (DELETE): tag %s removed successfuly", tagId);
 			request->send(200, "text/plain; charset=utf-8", tagId + " removed successfuly");
 		} else {
+			Log_Println("/rfid (DELETE):error removing tag from NVS", LOGLEVEL_ERROR);
 			request->send(500, "text/plain; charset=utf-8", "error removing tag from NVS");
 		}
 	} else {
+		Log_Printf(LOGLEVEL_DEBUG, "/rfid (DELETE): tag %s not exists", tagId);
 		request->send(404, "text/plain; charset=utf-8", "error removing tag from NVS: Tag not exists");
 	}
 }
@@ -1770,17 +1796,27 @@ void Web_DumpSdToNvs(const char *_filename) {
 	uint16_t importCount = 0;
 	uint16_t invalidCount = 0;
 	nvs_t nvsEntry[1];
-	char buf;
 	File tmpFile = gFSystem.open(_filename);
 
-	if (!tmpFile) {
+	if (!tmpFile || (tmpFile.available() < 3)) {
 		Log_Println(errorReadingTmpfile, LOGLEVEL_ERROR);
 		return;
 	}
 
 	Led_SetPause(true);
+	// try to read UTF-8 BOM marker
+	bool isUtf8 = (tmpFile.read() == 0xEF) && (tmpFile.read() == 0xBB) && (tmpFile.read() == 0xBF);
+	if (!isUtf8) {
+		// no BOM found, reset to start of file
+		tmpFile.seek(0);
+	}
+
 	while (tmpFile.available() > 0) {
-		buf = tmpFile.read();
+		if (j >= sizeof(ebuf)) {
+			Log_Println(errorReadingTmpfile, LOGLEVEL_ERROR);
+			return;
+		}
+		char buf = tmpFile.read();
 		if (buf != '\n') {
 			ebuf[j++] = buf;
 		} else {
@@ -1794,8 +1830,12 @@ void Web_DumpSdToNvs(const char *_filename) {
 					nvsEntry[0].nvsKey[strlen(token)] = '\0';
 				} else {
 					count = false;
-					memcpy(nvsEntry[0].nvsEntry, token, strlen(token));
-					nvsEntry[0].nvsEntry[strlen(token)] = '\0';
+					if (isUtf8) {
+						memcpy(nvsEntry[0].nvsEntry, token, strlen(token));
+						nvsEntry[0].nvsEntry[strlen(token)] = '\0';
+					} else {
+						convertAsciiToUtf8(String(token), nvsEntry[0].nvsEntry);
+					}
 				}
 				token = strtok(NULL, stringOuterDelimiter);
 			}
