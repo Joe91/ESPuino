@@ -217,8 +217,12 @@ void setup() {
 	//
 #ifdef AUTO_NIGHT_MODE
 	// Night-mode init
+	setenv("TZ", timeZone, 1);
+	tzset();
+
 	struct tm timeinfo;
 	getLocalTime(&timeinfo);
+	Log_Printf(LOGLEVEL_DEBUG, "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
 	bool night_mode = false;
 	if ((timeinfo.tm_hour > HOUR_START) || (timeinfo.tm_hour < HOUR_END)) {
 		night_mode = true;
