@@ -213,6 +213,32 @@ void setup() {
 
 	IrReceiver_Init();
 	System_UpdateActivityTimer(); // initial set after boot
+
+	//
+#ifdef AUTO_NIGHT_MODE
+	// Night-mode init
+	struct tm timeinfo;
+	getLocalTime(&timeinfo);
+	bool night_mode = false;
+	if ((timeinfo.tm_hour > HOUR_START) || (timeinfo.tm_hour < HOUR_END)) {
+		night_mode = true;
+	}
+	if ((timeinfo.tm_hour == HOUR_START) && (timeinfo.tm_min > MINUTE_START)) {
+		night_mode = true;
+	}
+	if ((timeinfo.tm_hour == HOUR_END) && (timeinfo.tm_min < MINUTE_END)) {
+		night_mode = true;
+	}
+	// apply things, if in night-mode
+	if (night_mode) {
+		Cmd_Action(NIGHT_MODE_BOOTUP);
+		AudioPlayer_SetMaxVolumeSpeaker(MAX_NIGHT_VOLUME);
+		AudioPlayer_SetMaxVolume(MAX_NIGHT_VOLUME);
+	}
+
+#endif
+	//
+
 	Led_Indicate(LedIndicatorType::BootComplete);
 
 	Log_Printf(LOGLEVEL_DEBUG, "%s: %u", freeHeapAfterSetup, ESP.getFreeHeap());

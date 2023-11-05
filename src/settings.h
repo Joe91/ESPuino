@@ -230,6 +230,19 @@
 		constexpr uint8_t s_batteryCheckInterval = 10; // How often battery is measured (in minutes) (can be changed via GUI!)
 	#endif
 
+	#define AUTO_NIGHT_MODE 
+
+	#ifdef AUTO_NIGHT_MODE
+		#define HOUR_START			21
+		#define MINUTE_START		30
+		#define HOUR_END			 6
+		#define MINUTE_END			30
+
+		#define NIGHT_MODE_BOOTUP	CMD_SLEEP_TIMER_MOD_15
+		#define MAX_NIGHT_VOLUME	 5
+	#endif
+
+
 	#ifdef MEASURE_BATTERY_VOLTAGE
 		// (optional) Default-voltages for battery-monitoring via Neopixel; can be changed later via WebGUI
 		constexpr float s_warningLowVoltage = 3.4;                      // If battery-voltage is <= this value, a cyclic warning will be indicated by Neopixel (can be changed via GUI!)
