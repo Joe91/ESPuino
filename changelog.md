@@ -1,5 +1,26 @@
 ## DEV-branch
 
+* 04.11.2023: LPCD: wakeup check for ISO-14443 cards also with IRQ connected to port-expander
+* 04.11.2023: Bugfix for showing wrong loglevel
+* 03.11.2023: Web-ui: Fix overlapping info/log after pressing refresh button
+* 01.11.2023: Fix folder upload with special chars & playtime formatting
+* 31.10.2023: Code Formatting via clang-format #264, thank's to @laszloh & @fschrempf !! 
+
+
+## Version 2 (29.10.2023)
+
+* 27.10.2023: PlatformIO package 6.4.0, Arduino version stays at 2.0.11
+* 26.10.2023: LPCD, RFID_IRQ on port-expander: fix compiler warning
+* 26.10.2023: portTICK_RATE_MS is deprecated, use portTICK_PERIOD_MS instead (https://github.com/espressif/esp-idf/issues/51)
+* 26.10.2023: Cppcheck: Fix some warnings/hints
+* 22.10.2023: Bugfix PortExpander: beginTransmission()/endTransmission() must be balanced
+* 21.10.2023: Enhanced logging: Show Loglevel
+* 14.10.2023: New define NO_SDCARD, enable to start without any SD card, e.g. for a webplayer only.
+* 05.10.2023: Enable "Arduino as component" by default
+* 02.10.2023: Optimize Arduino as component (Disable BLE, BT-HFP & SPI ethernet)
+* 25.09.2023: Handle unicode characters in NVS backup, write UTF-8 BOM in backup.txt
+* 23.09.2023: Fix some log messages, update FTP & A2DP libraries
+* 22.09.2023: Bugfix_same_rfid_twice init (#262) - Thank's to @Joe91 !! 
 * 06.09.2023: Arduino as component #261 - Thank's to @Joe91 !! 
 * 01.09.2023: Regression: start an initial WiFi scan on startup, fix redirect to captive portal
 * 31.08.2023: Show nvs rfid assignments in web-ui & allow to delete single tags
@@ -90,7 +111,7 @@
 * 10.03.2023: Create DEV(eloper) branch
 
 
-## Master
+## Version 1
 
 * 22.04.2021: Introduced refactoring-branch
 * xx.05.2021: Fixing/stabilizing code
