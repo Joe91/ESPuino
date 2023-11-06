@@ -233,13 +233,13 @@
 	#define AUTO_NIGHT_MODE 
 
 	#ifdef AUTO_NIGHT_MODE
-		#define HOUR_START			21
+		#define HOUR_START			20
 		#define MINUTE_START		30
 		#define HOUR_END			 6
 		#define MINUTE_END			30
 
-		#define NIGHT_MODE_BOOTUP	CMD_SLEEP_TIMER_MOD_15
-		#define MAX_NIGHT_VOLUME	 5
+		#define NIGHT_MODE_BOOTUP	CMD_SLEEP_TIMER_MOD_30
+		#define MAX_NIGHT_VOLUME	 4
 	#endif
 
 
