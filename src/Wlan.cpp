@@ -315,7 +315,7 @@ void handleWifiStateConnectionSuccess() {
 
 	// get current time and date
 	Log_Println(syncingViaNtp, LOGLEVEL_NOTICE);
-	// Smooth time updating (non blocking)
+	// Updates system time immediately upon receiving a response from the SNTP server
 	sntp_set_sync_mode(SNTP_SYNC_MODE_IMMED);
 	// set notification call-back function
 	sntp_set_time_sync_notification_cb(ntpTimeAvailable);
