@@ -560,7 +560,7 @@ bool JSONToSettings(JsonObject doc) {
 	}
 	if (doc.containsKey("wifi")) {
 		// WiFi settings
-		static String hostName = doc["wifi"]["hostname"];
+		String hostName = doc["wifi"]["hostname"];
 		if (!Wlan_ValidateHostname(hostName)) {
 			Log_Println("Invalid hostname", LOGLEVEL_ERROR);
 			return false;
@@ -696,6 +696,12 @@ bool JSONToSettings(JsonObject doc) {
 		Web_SendWebsocketData(0, 60);
 	} else if (doc.containsKey("ssids")) {
 		Web_SendWebsocketData(0, 70);
+	} else if (doc.containsKey("trackProgress")) {
+		if (doc["trackProgress"].containsKey("posPercent")) {
+			gPlayProperties.seekmode = SEEK_POS_PERCENT;
+			gPlayProperties.currentRelPos = doc["trackProgress"]["posPercent"].as<uint8_t>();
+		}
+		Web_SendWebsocketData(0, 80);
 	}
 
 	return true;
@@ -726,15 +732,11 @@ static void settingsToJSON(JsonObject obj, const String section) {
 	if (section == "ssids") {
 		// saved SSID's
 		JsonObject ssidsObj = obj.createNestedObject("ssids");
-		static String ssids[10];
-
 		JsonArray ssidArr = ssidsObj.createNestedArray("savedSSIDs");
-		size_t len = Wlan_GetSSIDs(ssids, 10);
-		if (len > 0) {
-			for (int i = 0; i < len; i++) {
-				ssidArr.add(ssids[i]);
-			}
-		}
+		Wlan_GetSavedNetworks([ssidArr](const WiFiSettings &network) {
+			ssidArr.add(network.ssid);
+		});
+
 		// active SSID
 		if (Wlan_IsConnected()) {
 			ssidsObj["active"] = Wlan_GetCurrentSSID();
@@ -957,6 +959,11 @@ bool processJsonRequest(char *_serialJson) {
 // Sends JSON-answers via websocket
 void Web_SendWebsocketData(uint32_t client, uint8_t code) {
 	if (!webserverStarted) {
+		// webserver not yet started
+		return;
+	}
+	if (ws.count() == 0) {
+		// we do not have any webclient connected
 		return;
 	}
 	char *jBuf = (char *) x_calloc(1024, sizeof(char));
@@ -981,6 +988,8 @@ void Web_SendWebsocketData(uint32_t client, uint8_t code) {
 		entry["numberOfTracks"] = gPlayProperties.numberOfTracks;
 		entry["volume"] = AudioPlayer_GetCurrentVolume();
 		entry["name"] = gPlayProperties.title;
+		entry["posPercent"] = gPlayProperties.currentRelPos;
+		entry["playMode"] = gPlayProperties.playMode;
 	} else if (code == 40) {
 		object["coverimg"] = "coverimg";
 	} else if (code == 50) {
@@ -991,6 +1000,11 @@ void Web_SendWebsocketData(uint32_t client, uint8_t code) {
 	} else if (code == 70) {
 		JsonObject entry = object.createNestedObject("settings");
 		settingsToJSON(entry, "ssids");
+	} else if (code == 80) {
+		JsonObject entry = object.createNestedObject("trackProgress");
+		entry["posPercent"] = gPlayProperties.currentRelPos;
+		entry["time"] = AudioPlayer_GetCurrentTime();
+		entry["duration"] = AudioPlayer_GetFileDuration();
 	};
 
 	serializeJson(doc, jBuf, 1024);
@@ -1028,7 +1042,7 @@ void onWebsocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsE
 			// Serial.printf("ws[%s][%u] %s-message[%llu]: ", server->url(), client->id(), (info->opcode == WS_TEXT) ? "text" : "binary", info->len);
 
 			if (processJsonRequest((char *) data)) {
-				if (data && (strncmp((char *) data, "getTrack", 8))) { // Don't send back ok-feedback if track's name is requested in background
+				if (data && (strncmp((char *) data, "track", 5))) { // Don't send back ok-feedback if track's name is requested in background
 					Web_SendWebsocketData(client->id(), 1);
 				}
 			}
@@ -1491,12 +1505,9 @@ void explorerHandleAudioRequest(AsyncWebServerRequest *request) {
 void handleGetSavedSSIDs(AsyncWebServerRequest *request) {
 	AsyncJsonResponse *response = new AsyncJsonResponse(true);
 	JsonArray json_ssids = response->getRoot();
-	static String ssids[10];
-
-	size_t len = Wlan_GetSSIDs(ssids, 10);
-	for (int i = 0; i < len; i++) {
-		json_ssids.add(ssids[i]);
-	}
+	Wlan_GetSavedNetworks([json_ssids](const WiFiSettings &network) {
+		json_ssids.add(network.ssid);
+	});
 
 	response->setLength();
 	request->send(response);
