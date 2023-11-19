@@ -79,7 +79,7 @@ static void handleGetSettings(AsyncWebServerRequest *request);
 static void handlePostSettings(AsyncWebServerRequest *request, JsonVariant &json);
 
 static void onWebsocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
-static void settingsToJSON(JsonObject obj, String section);
+static void settingsToJSON(JsonObject obj, const String section);
 static bool JSONToSettings(JsonObject obj);
 static void webserverStart(void);
 
@@ -316,12 +316,17 @@ void webserverStart(void) {
 			} else {
 				if (WiFi.getMode() == WIFI_STA) {
 					// serve management.html in station-mode
+#ifdef NO_SDCARD
+					response = request->beginResponse_P(200, "text/html", (const uint8_t *) management_BIN, sizeof(management_BIN));
+					response->addHeader("Content-Encoding", "gzip");
+#else
 					if (gFSystem.exists("/.html/index.htm")) {
-						response = request->beginResponse(gFSystem, "/.html/index.htm", String(), false);
+						response = request->beginResponse(gFSystem, "/.html/index.htm", "text/html", false);
 					} else {
 						response = request->beginResponse_P(200, "text/html", (const uint8_t *) management_BIN, sizeof(management_BIN));
 						response->addHeader("Content-Encoding", "gzip");
 					}
+#endif
 				} else {
 					// serve accesspoint.html in AP-mode
 					response = request->beginResponse_P(200, "text/html", (const uint8_t *) accesspoint_BIN, sizeof(accesspoint_BIN));
@@ -487,6 +492,7 @@ void webserverStart(void) {
 
 		// ESPuino logo
 		wServer.on("/logo", HTTP_GET, [](AsyncWebServerRequest *request) {
+#ifndef NO_SDCARD
 			Log_Println("logo request", LOGLEVEL_DEBUG);
 			if (gFSystem.exists("/.html/logo.png")) {
 				request->send(gFSystem, "/.html/logo.png", "image/png");
@@ -496,14 +502,17 @@ void webserverStart(void) {
 				request->send(gFSystem, "/.html/logo.svg", "image/svg+xml");
 				return;
 			};
+#endif
 			request->redirect("https://www.espuino.de/Espuino.webp");
 		});
 		// ESPuino favicon
 		wServer.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
+#ifndef NO_SDCARD
 			if (gFSystem.exists("/.html/favicon.ico")) {
 				request->send(gFSystem, "/.html/favicon.png", "image/x-icon");
 				return;
 			};
+#endif
 			request->redirect("https://espuino.de/espuino/favicon.ico");
 		});
 		// ESPuino settings
@@ -551,7 +560,7 @@ bool JSONToSettings(JsonObject doc) {
 	}
 	if (doc.containsKey("wifi")) {
 		// WiFi settings
-		static String hostName = doc["wifi"]["hostname"];
+		String hostName = doc["wifi"]["hostname"];
 		if (!Wlan_ValidateHostname(hostName)) {
 			Log_Println("Invalid hostname", LOGLEVEL_ERROR);
 			return false;
@@ -687,13 +696,19 @@ bool JSONToSettings(JsonObject doc) {
 		Web_SendWebsocketData(0, 60);
 	} else if (doc.containsKey("ssids")) {
 		Web_SendWebsocketData(0, 70);
+	} else if (doc.containsKey("trackProgress")) {
+		if (doc["trackProgress"].containsKey("posPercent")) {
+			gPlayProperties.seekmode = SEEK_POS_PERCENT;
+			gPlayProperties.currentRelPos = doc["trackProgress"]["posPercent"].as<uint8_t>();
+		}
+		Web_SendWebsocketData(0, 80);
 	}
 
 	return true;
 }
 
 // process settings to JSON object
-static void settingsToJSON(JsonObject obj, String section) {
+static void settingsToJSON(JsonObject obj, const String section) {
 	if ((section == "") || (section == "current")) {
 		// current values
 		JsonObject curObj = obj.createNestedObject("current");
@@ -717,15 +732,11 @@ static void settingsToJSON(JsonObject obj, String section) {
 	if (section == "ssids") {
 		// saved SSID's
 		JsonObject ssidsObj = obj.createNestedObject("ssids");
-		static String ssids[10];
-
 		JsonArray ssidArr = ssidsObj.createNestedArray("savedSSIDs");
-		size_t len = Wlan_GetSSIDs(ssids, 10);
-		if (len > 0) {
-			for (int i = 0; i < len; i++) {
-				ssidArr.add(ssids[i]);
-			}
-		}
+		Wlan_GetSavedNetworks([ssidArr](const WiFiSettings &network) {
+			ssidArr.add(network.ssid);
+		});
+
 		// active SSID
 		if (Wlan_IsConnected()) {
 			ssidsObj["active"] = Wlan_GetCurrentSSID();
@@ -845,7 +856,7 @@ void handleGetInfo(AsyncWebServerRequest *request) {
 		JsonObject memoryObj = infoObj.createNestedObject("memory");
 		memoryObj["freeHeap"] = ESP.getFreeHeap();
 		memoryObj["largestFreeBlock"] = (uint32_t) heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
-		if (psramInit()) {
+		if (psramFound()) {
 			memoryObj["freePSRam"] = ESP.getFreePsram();
 		}
 	}
@@ -948,6 +959,11 @@ bool processJsonRequest(char *_serialJson) {
 // Sends JSON-answers via websocket
 void Web_SendWebsocketData(uint32_t client, uint8_t code) {
 	if (!webserverStarted) {
+		// webserver not yet started
+		return;
+	}
+	if (ws.count() == 0) {
+		// we do not have any webclient connected
 		return;
 	}
 	char *jBuf = (char *) x_calloc(1024, sizeof(char));
@@ -972,6 +988,8 @@ void Web_SendWebsocketData(uint32_t client, uint8_t code) {
 		entry["numberOfTracks"] = gPlayProperties.numberOfTracks;
 		entry["volume"] = AudioPlayer_GetCurrentVolume();
 		entry["name"] = gPlayProperties.title;
+		entry["posPercent"] = gPlayProperties.currentRelPos;
+		entry["playMode"] = gPlayProperties.playMode;
 	} else if (code == 40) {
 		object["coverimg"] = "coverimg";
 	} else if (code == 50) {
@@ -982,6 +1000,11 @@ void Web_SendWebsocketData(uint32_t client, uint8_t code) {
 	} else if (code == 70) {
 		JsonObject entry = object.createNestedObject("settings");
 		settingsToJSON(entry, "ssids");
+	} else if (code == 80) {
+		JsonObject entry = object.createNestedObject("trackProgress");
+		entry["posPercent"] = gPlayProperties.currentRelPos;
+		entry["time"] = AudioPlayer_GetCurrentTime();
+		entry["duration"] = AudioPlayer_GetFileDuration();
 	};
 
 	serializeJson(doc, jBuf, 1024);
@@ -1019,7 +1042,7 @@ void onWebsocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsE
 			// Serial.printf("ws[%s][%u] %s-message[%llu]: ", server->url(), client->id(), (info->opcode == WS_TEXT) ? "text" : "binary", info->len);
 
 			if (processJsonRequest((char *) data)) {
-				if (data && (strncmp((char *) data, "getTrack", 8))) { // Don't send back ok-feedback if track's name is requested in background
+				if (data && (strncmp((char *) data, "track", 5))) { // Don't send back ok-feedback if track's name is requested in background
 					Web_SendWebsocketData(client->id(), 1);
 				}
 			}
@@ -1244,6 +1267,10 @@ void explorerHandleFileStorageTask(void *parameter) {
 // Sends a list of the content of a directory as JSON file
 // requires a GET parameter path for the directory
 void explorerHandleListRequest(AsyncWebServerRequest *request) {
+#ifdef NO_SDCARD
+	request->send(200, "application/json; charset=utf-8", "[]"); // maybe better to send 404 here?
+	return;
+#endif
 #ifdef BOARD_HAS_PSRAM
 	SpiRamJsonDocument jsonBuffer(65636);
 #else
@@ -1478,12 +1505,9 @@ void explorerHandleAudioRequest(AsyncWebServerRequest *request) {
 void handleGetSavedSSIDs(AsyncWebServerRequest *request) {
 	AsyncJsonResponse *response = new AsyncJsonResponse(true);
 	JsonArray json_ssids = response->getRoot();
-	static String ssids[10];
-
-	size_t len = Wlan_GetSSIDs(ssids, 10);
-	for (int i = 0; i < len; i++) {
-		json_ssids.add(ssids[i]);
-	}
+	Wlan_GetSavedNetworks([json_ssids](const WiFiSettings &network) {
+		json_ssids.add(network.ssid);
+	});
 
 	response->setLength();
 	request->send(response);
@@ -1590,7 +1614,7 @@ void handlePostWiFiConfig(AsyncWebServerRequest *request, JsonVariant &json) {
 	}
 }
 
-static bool tagIdToJSON(String tagId, JsonObject entry) {
+static bool tagIdToJSON(const String tagId, JsonObject entry) {
 	String s = gPrefsRfid.getString(tagId.c_str(), "-1"); // Try to lookup rfidId in NVS
 	if (!s.compareTo("-1")) {
 		return false;
