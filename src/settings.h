@@ -238,8 +238,8 @@
 		#define HOUR_END			 7
 		#define MINUTE_END			30
 
-		#define NIGHT_MODE_BOOTUP	CMD_SLEEP_TIMER_MOD_15
-		#define MAX_NIGHT_VOLUME	 3
+		#define NIGHT_MODE_BOOTUP	CMD_SLEEP_TIMER_MOD_30
+		#define MAX_NIGHT_VOLUME	 2
 	#endif
 
 
