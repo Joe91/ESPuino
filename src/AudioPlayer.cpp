@@ -129,10 +129,22 @@ void AudioPlayer_Init(void) {
 			"mp3play", /* Name of the task */
 			6000, /* Stack size in words */
 			NULL, /* Task input parameter */
-			3 | portPRIVILEGE_BIT, /* Priority of the task */
+			2 | portPRIVILEGE_BIT, /* Priority of the task */
 			&AudioTaskHandle, /* Task handle. */
 			1 /* Core where the task should run */
 		);
+	}
+}
+
+void AudioPlayer_ResetToInitialMaxVolume(void) {
+	// Get maximum volume for speaker from NVS
+	uint32_t nvsMaxVolumeSpeaker = gPrefsSettings.getUInt("maxVolumeSp", 0);
+	if (nvsMaxVolumeSpeaker) {
+		AudioPlayer_SetMaxVolumeSpeaker(nvsMaxVolumeSpeaker);
+		AudioPlayer_SetMaxVolume(nvsMaxVolumeSpeaker);
+		if (AudioPlayer_GetCurrentVolume() > AudioPlayer_GetMaxVolume()) {
+			AudioPlayer_SetCurrentVolume(AudioPlayer_GetMaxVolume());
+		}
 	}
 }
 

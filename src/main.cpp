@@ -251,7 +251,7 @@ void setup() {
 			AudioPlayer_SetMaxVolumeSpeaker(MAX_NIGHT_VOLUME);
 			AudioPlayer_SetMaxVolume(MAX_NIGHT_VOLUME);
 			// also set volume, since otherwise it can be stuck
-			AudioPlayer_SetCurrentVolume(MAX_NIGHT_VOLUME - 1);
+			AudioPlayer_SetCurrentVolume(MAX_NIGHT_VOLUME);
 		}
 #endif
 	}

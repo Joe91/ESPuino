@@ -236,7 +236,7 @@
 		#define HOUR_START			20
 		#define MINUTE_START		30
 		#define HOUR_END			 7
-		#define MINUTE_END			30
+		#define MINUTE_END			15
 
 		#define NIGHT_MODE_BOOTUP	CMD_SLEEP_TIMER_MOD_30
 		#define MAX_NIGHT_VOLUME	 2
