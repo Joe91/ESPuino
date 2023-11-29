@@ -364,6 +364,7 @@ void AudioPlayer_Task(void *parameter) {
 	bool audioReturnCode;
 	AudioPlayer_CurrentTime = 0;
 	AudioPlayer_FileDuration = 0;
+	static uint32_t AudioPlayer_LastPlaytimeStatsTimestamp = 0u;
 
 	for (;;) {
 		/*
@@ -384,9 +385,22 @@ void AudioPlayer_Task(void *parameter) {
 			Log_Printf(LOGLEVEL_INFO, newCntrlReceivedQueue, trackCommand);
 		}
 
-		// update current playtime and duration
-		AudioPlayer_CurrentTime = audio->getAudioCurrentTime();
-		AudioPlayer_FileDuration = audio->getAudioFileDuration();
+		// Update playtime stats every 250 ms
+		if ((millis() - AudioPlayer_LastPlaytimeStatsTimestamp) > 250) {
+			AudioPlayer_LastPlaytimeStatsTimestamp = millis();
+			// Update current playtime and duration
+			AudioPlayer_CurrentTime = audio->getAudioCurrentTime();
+			AudioPlayer_FileDuration = audio->getAudioFileDuration();
+			// Calculate relative position in file (for trackprogress neopixel & web-ui)
+			if (!gPlayProperties.playlistFinished && !gPlayProperties.isWebstream) {
+				if (!gPlayProperties.pausePlay && (gPlayProperties.seekmode != SEEK_POS_PERCENT) && (audio->getFileSize() > 0)) { // To progress necessary when paused
+					gPlayProperties.currentRelPos = ((double) (audio->getFilePos() - audio->inBufferFilled()) / (double) audio->getFileSize()) * 100;
+				}
+			} else {
+				gPlayProperties.currentRelPos = 0;
+			}
+		}
+
 		trackQStatus = xQueueReceive(gTrackQueue, &gPlayProperties.playlist, 0);
 		if (trackQStatus == pdPASS || gPlayProperties.trackFinished || trackCommand != NO_ACTION) {
 			if (trackQStatus == pdPASS) {
@@ -421,6 +435,8 @@ void AudioPlayer_Task(void *parameter) {
 					}
 				}
 				if (gPlayProperties.sleepAfterCurrentTrack) { // Go to sleep if "sleep after track" was requested
+					gPlayProperties.playlistFinished = true;
+					gPlayProperties.playMode = NO_PLAYLIST;
 					System_RequestSleep();
 					break;
 				}
@@ -801,17 +817,6 @@ void AudioPlayer_Task(void *parameter) {
 				Log_Println(newPlayModeStereo, LOGLEVEL_NOTICE);
 				audio->setTone(0, 0, 0);
 			}
-		}
-
-		// Calculate relative position in file (for neopixel) for SD-card-mode
-		if (!gPlayProperties.playlistFinished && !gPlayProperties.isWebstream) {
-			if (millis() % 20 == 0) { // Keep it simple
-				if (!gPlayProperties.pausePlay && (audio->getFileSize() > 0) && (gPlayProperties.seekmode != SEEK_POS_PERCENT)) { // To progress necessary when paused
-					gPlayProperties.currentRelPos = ((double) (audio->getFilePos() - audio->inBufferFilled()) / (double) audio->getFileSize()) * 100;
-				}
-			}
-		} else {
-			gPlayProperties.currentRelPos = 0;
 		}
 
 		audio->loop();

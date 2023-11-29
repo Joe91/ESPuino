@@ -1743,8 +1743,10 @@ static void handleDeleteRFIDRequest(AsyncWebServerRequest *request) {
 		return;
 	}
 	if (gPrefsRfid.isKey(tagId.c_str())) {
-		// stop playback, tag to delete might be in use
-		Cmd_Action(CMD_STOP);
+		if (tagId.equals(gCurrentRfidTagId)) {
+			// stop playback, tag to delete is in use
+			Cmd_Action(CMD_STOP);
+		}
 		if (gPrefsRfid.remove(tagId.c_str())) {
 			Log_Printf(LOGLEVEL_INFO, "/rfid (DELETE): tag %s removed successfuly", tagId);
 			request->send(200, "text/plain; charset=utf-8", tagId + " removed successfuly");
@@ -1909,9 +1911,8 @@ static void handleCoverImageRequest(AsyncWebServerRequest *request) {
 
 	int imageSize = gPlayProperties.coverFileSize;
 	AsyncWebServerResponse *response = request->beginChunkedResponse(mimeType, [coverFile, imageSize](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {
-		if (maxLen > 1024) {
-			maxLen = 1024;
-		}
+		// some kind of webserver bug with actual size available, reduce the len
+		maxLen = maxLen >> 1;
 
 		File file = coverFile; // local copy of file pointer
 		size_t leftToWrite = imageSize - index;
