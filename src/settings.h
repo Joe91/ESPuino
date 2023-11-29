@@ -129,8 +129,8 @@
 	#define BUTTON_5_SHORT    CMD_NOTHING
 
 	#define BUTTON_0_LONG     CMD_NEXTTRACK
-	#define BUTTON_1_LONG     CMD_PREVTRACK
-	#define BUTTON_2_LONG     CMD_REPEAT_TRACK
+	#define BUTTON_1_LONG     CMD_REPEAT_TRACK
+	#define BUTTON_2_LONG     CMD_PLAYPAUSE
 	#define BUTTON_3_LONG     CMD_SLEEPMODE
 	#define BUTTON_4_LONG     CMD_NOTHING
 	#define BUTTON_5_LONG     CMD_NOTHING
@@ -168,7 +168,7 @@
 
 	// Buttons (better leave unchanged if in doubts :-))
 	constexpr uint8_t buttonDebounceInterval = 50;                // Interval in ms to software-debounce buttons
-	constexpr uint16_t intervalToLongPress = 1700;                 // Interval in ms to distinguish between short and long press of buttons
+	constexpr uint16_t intervalToLongPress = 1000;                 // Interval in ms to distinguish between short and long press of buttons
 	
 	// Buttons active state: Default 0 for active LOW, 1 for active HIGH e.g. for TTP223 Capacitive Touch Switch Button (FinnBox)
 	#define BUTTON_0_ACTIVE_STATE 0
