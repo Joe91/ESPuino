@@ -135,13 +135,13 @@
 	#define BUTTON_4_LONG     CMD_VOLUMEUP
 	#define BUTTON_5_LONG     CMD_VOLUMEDOWN
 
-    #define BUTTON_MULTI_01   CMD_TELL_IP_ADDRESS // (back + next)
+    #define BUTTON_MULTI_01   CMD_TOGGLE_BLUETOOTH_SINK_MODE // (back + next)
     #define BUTTON_MULTI_02   CMD_NOTHING // (next + play)
     #define BUTTON_MULTI_03   CMD_ENABLE_FTP_SERVER // (power + next)
 	#define BUTTON_MULTI_04   CMD_NOTHING
 	#define BUTTON_MULTI_05   CMD_NOTHING
 	#define BUTTON_MULTI_12   CMD_TELL_CURRENT_TIME // (back + play)
-	#define BUTTON_MULTI_13   CMD_TOGGLE_BLUETOOTH_SINK_MODE // (power + back)
+	#define BUTTON_MULTI_13   CMD_TELL_IP_ADDRESS // (power + back)
 	#define BUTTON_MULTI_14   CMD_NOTHING
 	#define BUTTON_MULTI_15   CMD_NOTHING
 	#define BUTTON_MULTI_23   CMD_SLEEP_TIMER_MOD_60 // (power + play)
