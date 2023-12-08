@@ -135,13 +135,13 @@
 	#define BUTTON_4_LONG     CMD_VOLUMEUP
 	#define BUTTON_5_LONG     CMD_VOLUMEDOWN
 
-    #define BUTTON_MULTI_01   CMD_TOGGLE_BLUETOOTH_SINK_MODE // (back + next)
+    #define BUTTON_MULTI_01   CMD_TELL_IP_ADDRESS // (back + next)
     #define BUTTON_MULTI_02   CMD_NOTHING // (next + play)
-    #define BUTTON_MULTI_03   CMD_ENABLE_FTP_SERVER // (power + next)
+    #define BUTTON_MULTI_03   CMD_TOGGLE_BLUETOOTH_SINK_MODE // (power + next)
 	#define BUTTON_MULTI_04   CMD_NOTHING
 	#define BUTTON_MULTI_05   CMD_NOTHING
 	#define BUTTON_MULTI_12   CMD_TELL_CURRENT_TIME // (back + play)
-	#define BUTTON_MULTI_13   CMD_TELL_IP_ADDRESS // (power + back)
+	#define BUTTON_MULTI_13   CMD_ENABLE_FTP_SERVER // (power + back)
 	#define BUTTON_MULTI_14   CMD_NOTHING
 	#define BUTTON_MULTI_15   CMD_NOTHING
 	#define BUTTON_MULTI_23   CMD_SLEEP_TIMER_MOD_60 // (power + play)
@@ -168,7 +168,7 @@
 
 	// Buttons (better leave unchanged if in doubts :-))
 	constexpr uint8_t buttonDebounceInterval = 50;                // Interval in ms to software-debounce buttons
-	constexpr uint16_t intervalToLongPress = 700;                 // Interval in ms to distinguish between short and long press of buttons
+	constexpr uint16_t intervalToLongPress = 900;                 // Interval in ms to distinguish between short and long press of buttons
 
 	// Buttons active state: Default 0 for active LOW, 1 for active HIGH e.g. for TTP223 Capacitive Touch Switch Button (FinnBox)
 	#define BUTTON_0_ACTIVE_STATE 0
