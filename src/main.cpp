@@ -213,6 +213,7 @@ void setup() {
 
 	IrReceiver_Init();
 	System_UpdateActivityTimer(); // initial set after boot
+
 	Led_Indicate(LedIndicatorType::BootComplete);
 
 	Log_Printf(LOGLEVEL_DEBUG, "%s: %u", freeHeapAfterSetup, ESP.getFreeHeap());
@@ -231,6 +232,28 @@ void setup() {
 		static char timeStringBuff[255];
 		snprintf(timeStringBuff, sizeof(timeStringBuff), dateTimeRTC, timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year + 1900, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
 		Log_Println(timeStringBuff, LOGLEVEL_DEBUG);
+
+#ifdef AUTO_NIGHT_MODE
+		// Night-mode init
+		bool night_mode = false;
+		if ((timeinfo.tm_hour > HOUR_START) || (timeinfo.tm_hour < HOUR_END)) {
+			night_mode = true;
+		}
+		if ((timeinfo.tm_hour == HOUR_START) && (timeinfo.tm_min > MINUTE_START)) {
+			night_mode = true;
+		}
+		if ((timeinfo.tm_hour == HOUR_END) && (timeinfo.tm_min < MINUTE_END)) {
+			night_mode = true;
+		}
+		// apply things, if in night-mode
+		if (night_mode) {
+			Cmd_Action(NIGHT_MODE_BOOTUP);
+			AudioPlayer_SetMaxVolumeSpeaker(MAX_NIGHT_VOLUME);
+			AudioPlayer_SetMaxVolume(MAX_NIGHT_VOLUME);
+			// also set volume, since otherwise it can be stuck
+			AudioPlayer_SetCurrentVolume(MAX_NIGHT_VOLUME - 1);
+		}
+#endif
 	}
 
 	if (Wlan_IsConnected()) {

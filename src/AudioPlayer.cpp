@@ -136,6 +136,18 @@ void AudioPlayer_Init(void) {
 	}
 }
 
+void AudioPlayer_ResetToInitialMaxVolume(void) {
+	// Get maximum volume for speaker from NVS
+	uint32_t nvsMaxVolumeSpeaker = gPrefsSettings.getUInt("maxVolumeSp", 0);
+	if (nvsMaxVolumeSpeaker) {
+		AudioPlayer_SetMaxVolumeSpeaker(nvsMaxVolumeSpeaker);
+		AudioPlayer_SetMaxVolume(nvsMaxVolumeSpeaker);
+		if (AudioPlayer_GetCurrentVolume() > AudioPlayer_GetMaxVolume()) {
+			AudioPlayer_SetCurrentVolume(AudioPlayer_GetMaxVolume());
+		}
+	}
+}
+
 void AudioPlayer_Exit(void) {
 	Log_Println("shutdown audioplayer..", LOGLEVEL_NOTICE);
 	// save playtime total to NVS
