@@ -30,7 +30,6 @@
 
 playProps gPlayProperties;
 TaskHandle_t AudioTaskHandle;
-TaskHandle_t AudioLoopTaskHandle;
 // uint32_t cnt123 = 0;
 
 // Volume
@@ -55,7 +54,6 @@ static uint8_t AudioPlayer_MaxVolumeHeadphone = 11u; // Maximum volume that can 
 #endif
 
 static void AudioPlayer_Task(void *parameter);
-static void AudioPlayer_Task_Critical(void *parameter);
 static void AudioPlayer_HeadphoneVolumeManager(void);
 static char **AudioPlayer_ReturnPlaylistFromWebstream(const char *_webUrl);
 static int AudioPlayer_ArrSortHelper(const void *a, const void *b);
@@ -133,18 +131,6 @@ void AudioPlayer_Init(void) {
 			NULL, /* Task input parameter */
 			2 | portPRIVILEGE_BIT, /* Priority of the task */
 			&AudioTaskHandle, /* Task handle. */
-			1 /* Core where the task should run */
-		);
-	}
-	// Don't start audio-task in BT-speaker mode!
-	if ((System_GetOperationMode() == OPMODE_NORMAL) || (System_GetOperationMode() == OPMODE_BLUETOOTH_SOURCE)) {
-		xTaskCreatePinnedToCore(
-			AudioPlayer_Task_Critical, /* Function to implement the task */
-			"mp3loop", /* Name of the task */
-			6000, /* Stack size in words */
-			NULL, /* Task input parameter */
-			3 | portPRIVILEGE_BIT, /* Priority of the task */
-			&AudioLoopTaskHandle, /* Task handle. */
 			1 /* Core where the task should run */
 		);
 	}
@@ -360,36 +346,19 @@ public:
 	}
 };
 
-#ifdef BOARD_HAS_PSRAM
-AudioCustom *audio = nullptr;
-#else
-Audio *audio = nullptr;
-#endif
-
-void AudioPlayer_Task_Critical(void *parameter) {
-	for (;;) {
-		if (audio != nullptr) {
-			audio->loop();
-			vTaskDelay(portTICK_PERIOD_MS * 1u);
-		} else {
-			vTaskDelay(portTICK_PERIOD_MS * 5u);
-		}
-	}
-	vTaskDelete(NULL);
-}
-
 // Function to play music as task
 void AudioPlayer_Task(void *parameter) {
 #ifdef BOARD_HAS_PSRAM
-	audio = new AudioCustom();
+	AudioCustom *audio = new AudioCustom();
 #else
 	static Audio audioAsStatic; // Don't use heap as it's needed for other stuff :-)
-	audio = &audioAsStatic;
+	Audio *audio = &audioAsStatic;
 #endif
 
 #ifdef I2S_COMM_FMT_LSB_ENABLE
 	audio->setI2SCommFMT_LSB(true);
 #endif
+
 	constexpr uint32_t playbackTimeout = 2000;
 	uint32_t playbackTimeoutStart = millis();
 
@@ -410,7 +379,6 @@ void AudioPlayer_Task(void *parameter) {
 	static uint32_t AudioPlayer_LastPlaytimeStatsTimestamp = 0u;
 
 	for (;;) {
-		vTaskDelay(2);
 		/*
 		if (cnt123++ % 100 == 0) {
 			Log_Printf(LOGLEVEL_DEBUG, "%u", uxTaskGetStackHighWaterMark(NULL));
@@ -870,6 +838,7 @@ void AudioPlayer_Task(void *parameter) {
 			}
 		}
 
+		audio->loop();
 		if (gPlayProperties.playlistFinished || gPlayProperties.pausePlay) {
 			if (!gPlayProperties.currentSpeechActive) {
 				vTaskDelay(portTICK_PERIOD_MS * 10); // Waste some time if playlist is not active
