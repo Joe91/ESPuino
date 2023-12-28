@@ -19,9 +19,9 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/bootstrap-slider.min.js"></script>
     
-    <script src="/js/i18next.min.js"></script>
-    <script src="/js/i18nextHttpBackend.min.js"></script>
-    <script src="/js/loc_i18next.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/i18next/23.7.11/i18next.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/i18next-http-backend/2.4.2/i18nextHttpBackend.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/loc-i18next@0.1.6/dist/umd/loc-i18next.min.js"></script>
 	<style type="text/css">
 		.jstree-default .jstree-search {
 			font-style: italic;
@@ -1347,7 +1347,8 @@
 						"themes" : { "stripes" : true },
 						'data' : {	text: '/',
 									state: {
-										opened: true
+										opened: true,
+										selected: true
 									},
 									type: 'folder',
 									children: [],
@@ -1876,18 +1877,19 @@
 		clearTimeout(tm);
 	}
 
-	function getTrackProgress() {
+	async function getTrackProgress() {
 		if (ActiveTab !== 'nav-control-tab') {
 			return;
 		};
-
-		var myObj = {
-			"trackProgress": {
-				trackProgress: 'trackProgress'
-			}
-		};
-		var myJSON = JSON.stringify(myObj);
-		socket.send(myJSON);
+		// use http request here, websocket comminication seems to be unstable with many messages
+		let data = await (await fetch("/trackprogress")).json();
+		if (data && data.trackProgress) {
+			// console.log(data.trackProgress);
+			setTrackProgress(data.trackProgress);
+		} else {
+			console.log("failed to fetch trackprogress: " + data);
+		}
+		return;
 	}
 
 	function setTrackProgress(msg) {
@@ -1896,7 +1898,11 @@
 		if (msg.duration > 0) {
 			document.getElementById('playtime').innerHTML = secondsToTime(msg.time) + " / " + secondsToTime(msg.duration);
 		} else {
-			document.getElementById('playtime').innerHTML = "-- / --";
+			if (msg.time > 0) {
+				document.getElementById('playtime').innerHTML = secondsToTime(msg.time);
+			} else {
+				document.getElementById('playtime').innerHTML = "-- / --";
+			}
 		}
 	}
 
