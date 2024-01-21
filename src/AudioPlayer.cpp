@@ -47,6 +47,9 @@ uint32_t AudioPlayer_FileDuration;
 time_t playTimeSecTotal = 0;
 time_t playTimeSecSinceStart = 0;
 
+// current station logo url
+static String AudioPlayer_StationLogoUrl;
+
 #ifdef HEADPHONE_ADJUST_ENABLE
 static bool AudioPlayer_HeadphoneLastDetectionState;
 static uint32_t AudioPlayer_HeadphoneLastDetectionTimestamp = 0u;
@@ -121,6 +124,7 @@ void AudioPlayer_Init(void) {
 	// clear title and cover image
 	gPlayProperties.title[0] = '\0';
 	gPlayProperties.coverFilePos = 0;
+	AudioPlayer_StationLogoUrl = "";
 
 	// Don't start audio-task in BT-speaker mode!
 	if ((System_GetOperationMode() == OPMODE_NORMAL) || (System_GetOperationMode() == OPMODE_BLUETOOTH_SOURCE)) {
@@ -239,6 +243,10 @@ uint32_t AudioPlayer_GetCurrentTime(void) {
 
 uint32_t AudioPlayer_GetFileDuration(void) {
 	return AudioPlayer_FileDuration;
+}
+
+String AudioPlayer_GetStationLogoUrl(void) {
+	return AudioPlayer_StationLogoUrl;
 }
 
 void Audio_setTitle(const char *format, ...) {
@@ -409,7 +417,12 @@ void IRAM_ATTR AudioPlayer_Task(void *parameter) {
 					gPlayProperties.currentRelPos = ((double) (audio->getFilePos() - audio->inBufferFilled()) / (double) audio->getFileSize()) * 100;
 				}
 			} else {
-				gPlayProperties.currentRelPos = 0;
+				// calc current fillbuffer percent for webstream
+				if (gPlayProperties.isWebstream && (audio->inBufferSize() > 0)) {
+					gPlayProperties.currentRelPos = (double) (audio->inBufferFilled() / (double) audio->inBufferSize()) * 100;
+				} else {
+					gPlayProperties.currentRelPos = 0;
+				}
 			}
 		}
 
@@ -421,12 +434,6 @@ void IRAM_ATTR AudioPlayer_Task(void *parameter) {
 				Log_Printf(LOGLEVEL_DEBUG, "Free heap: %u", ESP.getFreeHeap());
 				playbackTimeoutStart = millis();
 				gPlayProperties.pausePlay = false;
-				gPlayProperties.repeatCurrentTrack = false;
-				gPlayProperties.repeatPlaylist = false;
-				gPlayProperties.sleepAfterCurrentTrack = false;
-				gPlayProperties.sleepAfterPlaylist = false;
-				gPlayProperties.saveLastPlayPosition = false;
-				gPlayProperties.playUntilTrackNumber = 0;
 				gPlayProperties.trackFinished = false;
 				gPlayProperties.playlistFinished = false;
 
@@ -730,8 +737,8 @@ void IRAM_ATTR AudioPlayer_Task(void *parameter) {
 				}
 				if (gPlayProperties.startAtFilePos > 0) {
 					audio->setFilePos(gPlayProperties.startAtFilePos);
+					Log_Printf(LOGLEVEL_NOTICE, trackStartatPos, gPlayProperties.startAtFilePos);
 					gPlayProperties.startAtFilePos = 0;
-					Log_Printf(LOGLEVEL_NOTICE, trackStartatPos, audio->getFilePos());
 				}
 				if (gPlayProperties.isWebstream) {
 					if (gPlayProperties.numberOfTracks > 1) {
@@ -1010,6 +1017,13 @@ void AudioPlayer_TrackQueueDispatcher(const char *_itemToPlay, const uint32_t _l
 
 	gPlayProperties.playMode = _playMode;
 	gPlayProperties.numberOfTracks = strtoul(*(musicFiles - 1), NULL, 10);
+	// Set some default-values
+	gPlayProperties.repeatCurrentTrack = false;
+	gPlayProperties.repeatPlaylist = false;
+	gPlayProperties.sleepAfterCurrentTrack = false;
+	gPlayProperties.sleepAfterPlaylist = false;
+	gPlayProperties.saveLastPlayPosition = false;
+	gPlayProperties.playUntilTrackNumber = 0;
 
 #ifdef PLAY_LAST_RFID_AFTER_REBOOT
 	// Store last RFID-tag to NVS
@@ -1035,7 +1049,7 @@ void AudioPlayer_TrackQueueDispatcher(const char *_itemToPlay, const uint32_t _l
 			gPlayProperties.sleepAfterCurrentTrack = true;
 			gPlayProperties.playUntilTrackNumber = 0;
 			gPlayProperties.numberOfTracks = 1; // Limit number to 1 even there are more entries in the playlist
-			Led_ResetToNightBrightness();
+			Led_SetNightmode(true);
 			Log_Println(modeSingleTrackRandom, LOGLEVEL_NOTICE);
 			AudioPlayer_RandomizePlaylist(musicFiles, gPlayProperties.numberOfTracks);
 			xQueueSend(gTrackQueue, &(musicFiles), 0);
@@ -1208,6 +1222,7 @@ void AudioPlayer_SortPlaylist(char **arr, int n) {
 // Clear cover send notification
 void AudioPlayer_ClearCover(void) {
 	gPlayProperties.coverFilePos = 0;
+	AudioPlayer_StationLogoUrl = "";
 	// websocket and mqtt notify cover image has changed
 	Web_SendWebsocketData(0, 40);
 #ifdef MQTT_ENABLE
@@ -1218,6 +1233,10 @@ void AudioPlayer_ClearCover(void) {
 // Some mp3-lib-stuff (slightly changed from default)
 void audio_info(const char *info) {
 	Log_Printf(LOGLEVEL_INFO, "info        : %s", info);
+	if (startsWith((char *) info, "slow stream, dropouts")) {
+		// websocket notify for slow stream
+		Web_SendWebsocketData(0, 3);
+	}
 }
 
 void audio_id3data(const char *info) { // id3 metadata
@@ -1269,6 +1288,21 @@ void audio_commercial(const char *info) { // duration in sec
 
 void audio_icyurl(const char *info) { // homepage
 	Log_Printf(LOGLEVEL_INFO, "icyurl      : %s", info);
+	if ((String(info) != "") && (AudioPlayer_StationLogoUrl == "")) {
+		// has station homepage, get favicon url
+		AudioPlayer_StationLogoUrl = "https://www.google.com/s2/favicons?sz=256&domain_url=" + String(info);
+		// websocket and mqtt notify station logo has changed
+		Web_SendWebsocketData(0, 40);
+	}
+}
+
+void audio_icylogo(const char *info) { // logo
+	Log_Printf(LOGLEVEL_INFO, "icylogo      : %s", info);
+	if (String(info) != "") {
+		AudioPlayer_StationLogoUrl = info;
+		// websocket and mqtt notify station logo has changed
+		Web_SendWebsocketData(0, 40);
+	}
 }
 
 void audio_lasthost(const char *info) { // stream URL played
