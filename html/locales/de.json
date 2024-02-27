@@ -3,7 +3,7 @@
     "restart": "Neustart",
     "reset": "Reset",
 	"execute": "Ausführen",
-    "title": "ESPuino-Konfiguration",
+    "title": "ESPuino",
     "shutdown": "Ausschalten",
     "log": "Log",
     "info": "Info",
@@ -269,6 +269,13 @@
             "criticalShutoff": "Unter dieser Spannung schaltet der ESPuino ab.",
             "high": "Alle LEDs leuchten bei dieser Spannung",
             "measureInterval": "Zeitabstand der Messung (in Minuten)"
+        },
+        "playlist": {
+            "title": "Wiedergabeliste",
+            "sortMode": "Sortierungsmodus für Wiedergabeliste und Dateibrowser",
+            "strcmp": "Standardsortierung",
+            "strnatcmp": "Natürlich: Groß- und Kleinschreibung beachten",
+            "strnatcasecmp": "Natürlich: Groß- und Kleinschreibung ignorieren"
         }
     },
     "tools": {
@@ -315,6 +322,7 @@
         "largestfreeblock": "Größter freier Heap-Block: {{largestfreeblock}} Bytes",
         "freepsram": "Freier PS-RAM: {{freepsram}} Bytes",
         "currentip": "Aktuelle IP-Adresse: {{currentip}}",
+        "macAddress": "MAC-Adresse: {{macAddress}}",
         "rssi": "WLAN Signalstärke: {{rssi}} dBm",
         "audiotimetotal": "Audio-Gesamtspielzeit seit {{firststart}}: {{audiotimetotal}}",
         "audiotimesincestart": "Spielzeit seit letztem Start: {{audiotimesincestart}}", 
