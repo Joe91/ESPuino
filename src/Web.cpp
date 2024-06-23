@@ -232,7 +232,22 @@ public:
 // callback function is called for every key with userdefined data object
 bool listNVSKeys(const char *_namespace, void *data, bool (*callback)(const char *key, void *data)) {
 	constexpr const char *partname = "nvs";
-
+#if (defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3))
+	nvs_iterator_t it = nullptr;
+	esp_err_t res = nvs_entry_find(partname, _namespace, NVS_TYPE_ANY, &it);
+	while (res == ESP_OK) {
+		nvs_entry_info_t info;
+		nvs_entry_info(it, &info);
+		// some basic sanity check
+		if (isNumber(info.key)) {
+			if (!callback(info.key, data)) {
+				return false;
+			}
+		}
+		// finished, NEXT
+		res = nvs_entry_next(&it);
+	}
+#else
 	nvs_iterator_t it = nvs_entry_find(partname, _namespace, NVS_TYPE_ANY);
 	if (it == nullptr) {
 		// no entries found
@@ -250,6 +265,7 @@ bool listNVSKeys(const char *_namespace, void *data, bool (*callback)(const char
 		// finished, NEXT!
 		it = nvs_entry_next(it);
 	}
+#endif
 	return true;
 }
 
@@ -625,6 +641,19 @@ bool JSONToSettings(JsonObject doc) {
 			return false;
 		}
 	}
+	if (doc.containsKey("equalizer")) {
+		int8_t _gainLowPass = doc["equalizer"]["gainLowPass"].as<int8_t>();
+		int8_t _gainBandPass = doc["equalizer"]["gainBandPass"].as<int8_t>();
+		int8_t _gainHighPass = doc["equalizer"]["gainHighPass"].as<int8_t>();
+		// equalizer settings
+		if (
+			gPrefsSettings.putChar("gainLowPass", _gainLowPass) == 0 || gPrefsSettings.putChar("gainBandPass", _gainBandPass) == 0 || gPrefsSettings.putChar("gainHighPass", _gainHighPass) == 0) {
+			Log_Printf(LOGLEVEL_ERROR, webSaveSettingsError, "equalizer");
+			return false;
+		} else {
+			AudioPlayer_EqualizerToQueueSender(_gainLowPass, _gainBandPass, _gainHighPass);
+		}
+	}
 	if (doc.containsKey("wifi")) {
 		// WiFi settings
 		String hostName = doc["wifi"]["hostname"];
@@ -747,7 +776,7 @@ bool JSONToSettings(JsonObject doc) {
 		if ((millis() - lastPongTimestamp) > 1000u) {
 			// send pong (keep-alive heartbeat), check for excessive calls
 			lastPongTimestamp = millis();
-			Web_SendWebsocketData(0, 20);
+			Web_SendWebsocketData(0, WebsocketCodeType::Pong);
 		}
 		return false;
 	} else if (doc.containsKey("controls")) {
@@ -760,21 +789,21 @@ bool JSONToSettings(JsonObject doc) {
 			Cmd_Action(cmd);
 		}
 	} else if (doc.containsKey("trackinfo")) {
-		Web_SendWebsocketData(0, 30);
+		Web_SendWebsocketData(0, WebsocketCodeType::TrackInfo);
 	} else if (doc.containsKey("coverimg")) {
-		Web_SendWebsocketData(0, 40);
+		Web_SendWebsocketData(0, WebsocketCodeType::CoverImg);
 	} else if (doc.containsKey("volume")) {
-		Web_SendWebsocketData(0, 50);
+		Web_SendWebsocketData(0, WebsocketCodeType::Volume);
 	} else if (doc.containsKey("settings")) {
-		Web_SendWebsocketData(0, 60);
+		Web_SendWebsocketData(0, WebsocketCodeType::Settings);
 	} else if (doc.containsKey("ssids")) {
-		Web_SendWebsocketData(0, 70);
+		Web_SendWebsocketData(0, WebsocketCodeType::Ssid);
 	} else if (doc.containsKey("trackProgress")) {
 		if (doc["trackProgress"].containsKey("posPercent")) {
 			gPlayProperties.seekmode = SEEK_POS_PERCENT;
 			gPlayProperties.currentRelPos = doc["trackProgress"]["posPercent"].as<uint8_t>();
 		}
-		Web_SendWebsocketData(0, 80);
+		Web_SendWebsocketData(0, WebsocketCodeType::TrackProgress);
 	}
 
 	return true;
@@ -795,6 +824,13 @@ static void settingsToJSON(JsonObject obj, const String section) {
 		generalObj["maxVolumeSp"].set(gPrefsSettings.getUInt("maxVolumeSp", 0));
 		generalObj["maxVolumeHp"].set(gPrefsSettings.getUInt("maxVolumeHp", 0));
 		generalObj["sleepInactivity"].set(gPrefsSettings.getUInt("mInactiviyT", 0));
+	}
+	if ((section == "") || (section == "equalizer")) {
+		// equalizer settings
+		JsonObject equalizerObj = obj.createNestedObject("equalizer");
+		equalizerObj["gainLowPass"].set(gPrefsSettings.getChar("gainLowPass", 0));
+		equalizerObj["gainBandPass"].set(gPrefsSettings.getChar("gainBandPass", 0));
+		equalizerObj["gainHighPass"].set(gPrefsSettings.getChar("gainHighPass", 0));
 	}
 	if ((section == "") || (section == "wifi")) {
 		// WiFi settings
@@ -851,6 +887,9 @@ static void settingsToJSON(JsonObject obj, const String section) {
 		defaultsObj["maxVolumeSp"].set(21u); // AUDIOPLAYER_VOLUME_MAX
 		defaultsObj["maxVolumeHp"].set(18u); // gPrefsSettings.getUInt("maxVolumeHp", 0));
 		defaultsObj["sleepInactivity"].set(10u); // System_MaxInactivityTime
+		defaultsObj["gainHighPass"].set(0);
+		defaultsObj["gainBandPass"].set(0);
+		defaultsObj["gainLowPass"].set(0);
 #ifdef NEOPIXEL_ENABLE
 		defaultsObj["initBrightness"].set(16u); // LED_INITIAL_BRIGHTNESS
 		defaultsObj["nightBrightness"].set(2u); // LED_INITIAL_NIGHT_BRIGHTNESS
@@ -920,12 +959,8 @@ void handleGetInfo(AsyncWebServerRequest *request) {
 	if (request->hasParam("section")) {
 		section = request->getParam("section")->value();
 	}
-#ifdef BOARD_HAS_PSRAM
-	SpiRamJsonDocument doc(546);
-#else
-	StaticJsonDocument<546> doc;
-#endif
-	JsonObject infoObj = doc.createNestedObject("info");
+	AsyncJsonResponse *response = new AsyncJsonResponse(false, 768);
+	JsonObject infoObj = response->getRoot();
 	// software
 	if ((section == "") || (section == "software")) {
 		JsonObject softwareObj = infoObj.createNestedObject("software");
@@ -988,13 +1023,16 @@ void handleGetInfo(AsyncWebServerRequest *request) {
 	}
 #endif
 
-	String serializedJsonString;
-	serializeJson(infoObj, serializedJsonString);
-	if (doc.overflowed()) {
+#if defined(ASYNCWEBSERVER_FORK_mathieucarbou)
+	if (response->overflowed()) {
 		// JSON buffer too small for data
 		Log_Println(jsonbufferOverflow, LOGLEVEL_ERROR);
+		request->send(500);
+		return;
 	}
-	request->send(200, "application/json; charset=utf-8", serializedJsonString);
+#endif
+	response->setLength();
+	request->send(response);
 	System_UpdateActivityTimer();
 }
 
@@ -1006,20 +1044,20 @@ void handleGetSettings(AsyncWebServerRequest *request) {
 	if (request->hasParam("section")) {
 		section = request->getParam("section")->value();
 	}
-#ifdef BOARD_HAS_PSRAM
-	SpiRamJsonDocument doc(2048);
-#else
-	StaticJsonDocument<2048> doc;
-#endif
-	JsonObject settingsObj = doc.createNestedObject("settings");
+
+	AsyncJsonResponse *response = new AsyncJsonResponse(false, 2048);
+	JsonObject settingsObj = response->getRoot();
 	settingsToJSON(settingsObj, section);
-	String serializedJsonString;
-	serializeJson(settingsObj, serializedJsonString);
-	if (doc.overflowed()) {
+#if defined(ASYNCWEBSERVER_FORK_mathieucarbou)
+	if (response->overflowed()) {
 		// JSON buffer too small for data
 		Log_Println(jsonbufferOverflow, LOGLEVEL_ERROR);
+		request->send(500);
+		return;
 	}
-	request->send(200, "application/json; charset=utf-8", serializedJsonString);
+#endif
+	response->setLength();
+	request->send(response);
 }
 
 // handle post settings
@@ -1037,14 +1075,9 @@ void handlePostSettings(AsyncWebServerRequest *request, JsonVariant &json) {
 // returns memory and task runtime information as JSON
 void handleDebugRequest(AsyncWebServerRequest *request) {
 
-#ifdef BOARD_HAS_PSRAM
-	SpiRamJsonDocument doc(2048);
-#else
-	StaticJsonDocument<2048> doc;
-#endif
-
-	JsonObject infoObj = doc.createNestedObject("info");
+	AsyncJsonResponse *response = new AsyncJsonResponse(false, 2048);
 #ifdef CONFIG_FREERTOS_USE_TRACE_FACILITY
+	JsonObject infoObj = response->getRoot();
 	// task runtime info
 	TaskStatus_t task_status_arr[20];
 	uint32_t pulTotalRunTime;
@@ -1071,13 +1104,16 @@ void handleDebugRequest(AsyncWebServerRequest *request) {
 		taskObj["stackHighWaterMark"] = task_status_arr[i].usStackHighWaterMark;
 	}
 #endif
-	String serializedJsonString;
-	serializeJson(infoObj, serializedJsonString);
-	if (doc.overflowed()) {
+#if defined(ASYNCWEBSERVER_FORK_mathieucarbou)
+	if (response->overflowed()) {
 		// JSON buffer too small for data
 		Log_Println(jsonbufferOverflow, LOGLEVEL_ERROR);
+		request->send(500);
+		return;
 	}
-	request->send(200, "application/json; charset=utf-8", serializedJsonString);
+#endif
+	response->setLength();
+	request->send(response);
 }
 
 // Takes inputs from webgui, parses JSON and saves values in NVS
@@ -1104,7 +1140,7 @@ bool processJsonRequest(char *_serialJson) {
 }
 
 // Sends JSON-answers via websocket
-void Web_SendWebsocketData(uint32_t client, uint8_t code) {
+void Web_SendWebsocketData(uint32_t client, WebsocketCodeType code) {
 	if (!webserverStarted) {
 		// webserver not yet started
 		return;
@@ -1113,36 +1149,27 @@ void Web_SendWebsocketData(uint32_t client, uint8_t code) {
 		// we do not have any webclient connected
 		return;
 	}
-	// check if we can send message to the client(s)
-	if (client == 0) {
-		if (!ws.availableForWriteAll()) {
-			Log_Println("Websocket: Cannot send data (Too many messages queued)!", LOGLEVEL_ERROR);
-			return;
-		}
-	} else {
-		if (!ws.availableForWrite(client)) {
-			Log_Printf(LOGLEVEL_ERROR, "Websocket: Cannot send data to client %d (Too many messages queued)!", client);
-			return;
-		}
-	}
-	char *jBuf = (char *) x_calloc(1024, sizeof(char));
+#ifdef BOARD_HAS_PSRAM
+	SpiRamJsonDocument doc(1024);
+#else
 	StaticJsonDocument<1024> doc;
+#endif
 	JsonObject object = doc.to<JsonObject>();
 
-	if (code == 1) {
+	if (code == WebsocketCodeType::Ok) {
 		object["status"] = "ok";
-	} else if (code == 2) {
+	} else if (code == WebsocketCodeType::Error) {
 		object["status"] = "error";
-	} else if (code == 3) {
+	} else if (code == WebsocketCodeType::Dropout) {
 		object["status"] = "dropout";
-	} else if (code == 10) {
+	} else if (code == WebsocketCodeType::CurrentRfid) {
 		object["rfidId"] = gCurrentRfidTagId;
-	} else if (code == 20) {
+	} else if (code == WebsocketCodeType::Pong) {
 		object["pong"] = "pong";
 		object["rssi"] = Wlan_GetRssi();
 		// todo: battery percent + loading status +++
 		// object["battery"] = Battery_GetVoltage();
-	} else if (code == 30) {
+	} else if (code == WebsocketCodeType::TrackInfo) {
 		JsonObject entry = object.createNestedObject("trackinfo");
 		entry["pausePlay"] = gPlayProperties.pausePlay;
 		entry["currentTrackNumber"] = gPlayProperties.currentTrackNumber + 1;
@@ -1151,39 +1178,68 @@ void Web_SendWebsocketData(uint32_t client, uint8_t code) {
 		entry["name"] = gPlayProperties.title;
 		entry["posPercent"] = gPlayProperties.currentRelPos;
 		entry["playMode"] = gPlayProperties.playMode;
-	} else if (code == 40) {
+	} else if (code == WebsocketCodeType::CoverImg) {
 		object["coverimg"] = "coverimg";
-	} else if (code == 50) {
+	} else if (code == WebsocketCodeType::Volume) {
 		object["volume"] = AudioPlayer_GetCurrentVolume();
-	} else if (code == 60) {
+	} else if (code == WebsocketCodeType::Settings) {
 		JsonObject entry = object.createNestedObject("settings");
 		settingsToJSON(entry, "");
-	} else if (code == 70) {
+	} else if (code == WebsocketCodeType::Ssid) {
 		JsonObject entry = object.createNestedObject("settings");
 		settingsToJSON(entry, "ssids");
-	} else if (code == 80) {
+	} else if (code == WebsocketCodeType::TrackProgress) {
 		JsonObject entry = object.createNestedObject("trackProgress");
 		entry["posPercent"] = gPlayProperties.currentRelPos;
 		entry["time"] = AudioPlayer_GetCurrentTime();
 		entry["duration"] = AudioPlayer_GetFileDuration();
 	};
 
-	serializeJson(doc, jBuf, 1024);
 	if (doc.overflowed()) {
 		// JSON buffer too small for data
 		Log_Println(jsonbufferOverflow, LOGLEVEL_ERROR);
 	}
 
+#if defined(ASYNCWEBSERVER_FORK_mathieucarbou)
+	// serialize JSON in a more optimized way using a shared buffer
+	const size_t len = measureJson(doc);
+	AsyncWebSocketMessageBuffer *jsonBuffer = ws.makeBuffer(len);
+	if (!jsonBuffer) {
+		// memory allocation of vector failed, we can not use the AsyncWebSocketMessageBuffer
+		Log_Println(unableToAllocateMem, LOGLEVEL_ERROR);
+		return;
+	}
+	serializeJson(doc, jsonBuffer->get(), len);
 	if (client == 0) {
-		ws.printfAll(jBuf);
+		ws.textAll(jsonBuffer);
 	} else {
-		ws.printf(client, jBuf);
+		ws.text(client, jsonBuffer);
+	}
+#else
+	// measure length of JSON buffer including the null-terminator
+	const size_t len = measureJson(doc) + 1;
+	char *jBuf = (char *) x_calloc(len, sizeof(char));
+	if (!jBuf) {
+		// we failed to allocate enough memory
+		Log_Println(unableToAllocateMem, LOGLEVEL_ERROR);
+		return;
+	}
+	serializeJson(doc, jBuf, len);
+
+	if (client == 0) {
+		ws.textAll(jBuf);
+	} else {
+		ws.text(client, jBuf);
 	}
 	free(jBuf);
+#endif
 }
 
 // Processes websocket-requests
 void onWebsocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+
+	// discard message on queue full, socket should not be closed
+	client->setCloseClientOnQueueFull(false);
 
 	if (type == WS_EVT_CONNECT) {
 		// client connected
@@ -1208,7 +1264,7 @@ void onWebsocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsE
 
 			if (processJsonRequest((char *) data)) {
 				if (data && (strncmp((char *) data, "track", 5))) { // Don't send back ok-feedback if track's name is requested in background
-					Web_SendWebsocketData(client->id(), 1);
+					Web_SendWebsocketData(client->id(), WebsocketCodeType::Ok);
 				}
 			}
 
@@ -1298,7 +1354,7 @@ void explorerHandleFileUpload(AsyncWebServerRequest *request, String filename, s
 		}
 		// write content to buffer
 		memcpy(buffer[index_buffer_write] + size_in_buffer[index_buffer_write], data, len_to_write);
-		size_in_buffer[index_buffer_write] += len_to_write;
+		size_in_buffer[index_buffer_write] = size_in_buffer[index_buffer_write] + len_to_write;
 
 		// check if buffer is filled. If full, signal that ready and change buffers
 		if (size_in_buffer[index_buffer_write] == chunk_size) {
@@ -1333,7 +1389,7 @@ void explorerHandleFileUpload(AsyncWebServerRequest *request, String filename, s
 
 // feed the watchdog timer without delay
 void feedTheDog(void) {
-#if defined(SD_MMC_1BIT_MODE) && defined(CONFIG_IDF_TARGET_ESP32)
+#if defined(SD_MMC_1BIT_MODE) && defined(CONFIG_IDF_TARGET_ESP32) && (ESP_ARDUINO_VERSION_MAJOR < 3)
 	// feed dog 0
 	TIMERG0.wdt_wprotect = TIMG_WDT_WKEY_VALUE; // write enable
 	TIMERG0.wdt_feed = 1; // feed dog
@@ -1434,14 +1490,7 @@ void explorerHandleListRequest(AsyncWebServerRequest *request) {
 	request->send(200, "application/json; charset=utf-8", "[]"); // maybe better to send 404 here?
 	return;
 #endif
-#ifdef BOARD_HAS_PSRAM
-	SpiRamJsonDocument jsonBuffer(65636);
-#else
-	StaticJsonDocument<8192> jsonBuffer;
-#endif
 
-	String serializedJsonString;
-	JsonArray obj = jsonBuffer.createNestedArray();
 	File root;
 	if (request->hasParam("path")) {
 		AsyncWebParameter *param;
@@ -1462,6 +1511,14 @@ void explorerHandleListRequest(AsyncWebServerRequest *request) {
 		return;
 	}
 
+#ifdef BOARD_HAS_PSRAM
+	const size_t buffSize = 65536;
+#else
+	const size_t buffSize = 8192;
+#endif
+	AsyncJsonResponse *response = new AsyncJsonResponse(true, buffSize);
+
+	JsonArray obj = response->getRoot();
 	bool isDir = false;
 	String MyfileName = root.getNextFileName(&isDir);
 	while (MyfileName != "") {
@@ -1477,12 +1534,16 @@ void explorerHandleListRequest(AsyncWebServerRequest *request) {
 	}
 	root.close();
 
-	serializeJson(obj, serializedJsonString);
-	if (jsonBuffer.overflowed()) {
+#if defined(ASYNCWEBSERVER_FORK_mathieucarbou)
+	if (response->overflowed()) {
 		// JSON buffer too small for data
 		Log_Println(jsonbufferOverflow, LOGLEVEL_ERROR);
+		request->send(500);
+		return;
 	}
-	request->send(200, "application/json; charset=utf-8", serializedJsonString);
+#endif
+	response->setLength();
+	request->send(response);
 }
 
 bool explorerDeleteDirectory(File dir) {
@@ -2096,10 +2157,16 @@ static void handleCoverImageRequest(AsyncWebServerRequest *request) {
 			}
 		return;
 	}
-	char *coverFileName = gPlayProperties.playlist->at(gPlayProperties.currentTrackNumber);
-	Log_Println(coverFileName, LOGLEVEL_DEBUG);
+	const char *coverFileName = gPlayProperties.playlist->at(gPlayProperties.currentTrackNumber);
+	String decodedCover = "/.cache";
+	decodedCover.concat(coverFileName);
 
-	File coverFile = gFSystem.open(coverFileName, FILE_READ);
+	File coverFile;
+	if (gFSystem.exists(decodedCover)) {
+		coverFile = gFSystem.open(decodedCover, FILE_READ);
+	} else {
+		coverFile = gFSystem.open(coverFileName, FILE_READ);
+	}
 	char mimeType[255] {0};
 	char fileType[4];
 	coverFile.readBytes(fileType, 4);
@@ -2157,7 +2224,7 @@ static void handleCoverImageRequest(AsyncWebServerRequest *request) {
 			coverFile.seek(gPlayProperties.coverFilePos + 8);
 		}
 	}
-	Log_Printf(LOGLEVEL_NOTICE, "serve cover image (%s): %s", mimeType, coverFileName);
+	Log_Printf(LOGLEVEL_NOTICE, "serve cover image (%s): %s", mimeType, coverFile.name());
 
 	int imageSize = gPlayProperties.coverFileSize;
 	AsyncWebServerResponse *response = request->beginChunkedResponse(mimeType, [coverFile, imageSize](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {

@@ -2,6 +2,27 @@
 
 ## DEV-branch
 
+* 09.06.2024: Consume about 50% less CPU time in Audio library
+* 09.06.2024: Replace 3rd party library toastr (#331), thanks to @trainbird !
+* 09.06.2024: Modernized webserver & optimized JSON delivery (#332)
+* 20.05.2024: PlatformIO package 6.7.0 (Arduino 2.0.16, ESP-IDF 4.4.7)
+* 20.05.2024: Disable bluetooth support for A1S (IRAM too small)
+* 09.05.2024: Upgrade to Bootstrap v5.0 + Web-UI Enhancements (#328), thanks to @caco3 !
+* 23.04.2024: Enhance UI minification (#323), thanks to @caco3 ! 
+* 22.04.2024: Added virtual RFID-Cards (#319), thanks to @caco3 ! 
+* 18.04.2024: Correct calculation of newFilePos for SEEK_POS_PERCENT, thanks to @sfields!
+* 18.04.2024: Correct calculation of gPlayProperties.currentRelPos, thanks to @sfields!
+* 18.04.2024: Get title from-VORBISCOMMENT and ID3, thanks to @sfields!
+* 18.04.2024: Correct log for SSID name, thanks to @sfields!
+* 18.04.2024: Add button to expand/shrink file list (#317), thanks to @caco3 !
+* 18.04.2024: Fix remote UI debugging (#316), thanks to @caco3 !
+* 14.04.2024: Embed swagger UI #314, thanks to @caco3 !
+* 07.04.2024: Equalizer settings to WebUI #313, thanks to @trainbird !
+* 28.03.2024: Audio lib, fix a memory leak with flac files
+* 28.03.2024: Fix some warnings with upcoming Arduino 3 (ESP-IDF v5.1)
+* 16.03.2024: Reduce memory usage by measurement of JSON payload length
+* 15.03.2024: MQTT receive: Bug fix and avoid payload copy (#309), thanks to @eikel
+* 15.03.2024: Add coverimage support for ogg, vorbis, opus (and some flac), thanks to @sfields ! 
 * 19.02.2024: Add coverimage support for M4A files in Web-UI
 * 18.02.2024: Add coverimage support for flac files in Web-UI, thanks to @sfields ! 
 * 15.02.2024: Rework playlist generation (#275), thanks to @laszloh ! 

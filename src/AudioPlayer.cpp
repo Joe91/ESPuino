@@ -133,7 +133,7 @@ void AudioPlayer_Init(void) {
 	AudioPlayer_SetupVolumeAndAmps();
 
 	// initialize gPlayProperties
-	memset(&gPlayProperties, 0, sizeof(gPlayProperties));
+	gPlayProperties = {};
 	gPlayProperties.playlistFinished = true;
 
 	// clear title and cover image
@@ -286,7 +286,7 @@ void Audio_setTitle(const char *format, ...) {
 	va_end(args);
 
 	// notify web ui and mqtt
-	Web_SendWebsocketData(0, 30);
+	Web_SendWebsocketData(0, WebsocketCodeType::TrackInfo);
 #ifdef MQTT_ENABLE
 	publishMqtt(topicTrackState, gPlayProperties.title, false);
 #endif
@@ -405,9 +405,8 @@ void IRAM_ATTR AudioPlayer_Task(void *parameter) {
 	audio->setVolumeSteps(AUDIOPLAYER_VOLUME_MAX);
 	audio->setVolume(AudioPlayer_CurrentVolume, VOLUMECURVE);
 	audio->forceMono(gPlayProperties.currentPlayMono);
-	if (gPlayProperties.currentPlayMono) {
-		audio->setTone(3, 0, 0);
-	}
+	int8_t currentEqualizer[3] = {gPrefsSettings.getChar("gainLowPass", 0), gPrefsSettings.getChar("gainBandPass", 0), gPrefsSettings.getChar("gainHighPass", 0)};
+	audio->setTone(currentEqualizer[0], currentEqualizer[1], currentEqualizer[2]);
 
 	uint8_t currentVolume;
 	BaseType_t trackQStatus = pdFAIL;
@@ -426,10 +425,15 @@ void IRAM_ATTR AudioPlayer_Task(void *parameter) {
 		if (xQueueReceive(gVolumeQueue, &currentVolume, 0) == pdPASS) {
 			Log_Printf(LOGLEVEL_INFO, newLoudnessReceivedQueue, currentVolume);
 			audio->setVolume(currentVolume, VOLUMECURVE);
-			Web_SendWebsocketData(0, 50);
+			Web_SendWebsocketData(0, WebsocketCodeType::Volume);
 #ifdef MQTT_ENABLE
 			publishMqtt(topicLoudnessState, currentVolume, false);
 #endif
+		}
+
+		if (xQueueReceive(gEqualizerQueue, &currentEqualizer, 0) == pdPASS) {
+			Log_Printf(LOGLEVEL_DEBUG, newEqualizerReceivedQueue, currentEqualizer[0], currentEqualizer[1], currentEqualizer[2]);
+			audio->setTone(currentEqualizer[0], currentEqualizer[1], currentEqualizer[2]);
 		}
 
 		if (xQueueReceive(gTrackControlQueue, &trackCommand, 0) == pdPASS) {
@@ -448,7 +452,8 @@ void IRAM_ATTR AudioPlayer_Task(void *parameter) {
 			if (!gPlayProperties.playlistFinished && fileSize > 0) {
 				// for local files and web files with known size
 				if (!gPlayProperties.pausePlay && (gPlayProperties.seekmode != SEEK_POS_PERCENT)) { // To progress necessary when paused
-					gPlayProperties.currentRelPos = ((double) (audio->getFilePos() - audio->getAudioDataStartPos() - audio->inBufferFilled()) / fileSize) * 100;
+					uint32_t audioDataStartPos = audio->getAudioDataStartPos();
+					gPlayProperties.currentRelPos = ((double) (audio->getFilePos() - audioDataStartPos - audio->inBufferFilled()) / (fileSize - audioDataStartPos)) * 100;
 				}
 			} else {
 				if (gPlayProperties.isWebstream && (audio->inBufferSize() > 0)) {
@@ -482,7 +487,7 @@ void IRAM_ATTR AudioPlayer_Task(void *parameter) {
 
 				// If we're in audiobook-mode and apply a modification-card, we don't
 				// want to save lastPlayPosition for the mod-card but for the card that holds the playlist
-				if (gCurrentRfidTagId != NULL) {
+				if (strlen(gCurrentRfidTagId) > 0) {
 					strncpy(gPlayProperties.playRfidTag, gCurrentRfidTagId, sizeof(gPlayProperties.playRfidTag) / sizeof(gPlayProperties.playRfidTag[0]));
 				}
 			}
@@ -547,7 +552,7 @@ void IRAM_ATTR AudioPlayer_Task(void *parameter) {
 						AudioPlayer_NvsRfidWriteWrapper(gPlayProperties.playRfidTag, gPlayProperties.playlist->at(gPlayProperties.currentTrackNumber), audio->getFilePos() - audio->inBufferFilled(), gPlayProperties.playMode, gPlayProperties.currentTrackNumber, gPlayProperties.playlist->size());
 					}
 					gPlayProperties.pausePlay = !gPlayProperties.pausePlay;
-					Web_SendWebsocketData(0, 30);
+					Web_SendWebsocketData(0, WebsocketCodeType::TrackInfo);
 					continue;
 
 				case NEXTTRACK:
@@ -807,7 +812,7 @@ void IRAM_ATTR AudioPlayer_Task(void *parameter) {
 					System_IndicateError();
 				}
 			} else if ((gPlayProperties.seekmode == SEEK_POS_PERCENT) && (gPlayProperties.currentRelPos > 0) && (gPlayProperties.currentRelPos < 100)) {
-				uint32_t newFilePos = uint32_t((double) (gPlayProperties.currentRelPos / 100) * audio->getFileSize());
+				uint32_t newFilePos = uint32_t((double) audio->getAudioDataStartPos() * (1 - gPlayProperties.currentRelPos / 100) + (gPlayProperties.currentRelPos / 100) * audio->getFileSize());
 				if (audio->setFilePos(newFilePos)) {
 					Log_Printf(LOGLEVEL_NOTICE, JumpToPosition, newFilePos, audio->getFileSize());
 				} else {
@@ -878,11 +883,10 @@ void IRAM_ATTR AudioPlayer_Task(void *parameter) {
 			audio->forceMono(gPlayProperties.currentPlayMono);
 			if (gPlayProperties.currentPlayMono) {
 				Log_Println(newPlayModeMono, LOGLEVEL_NOTICE);
-				audio->setTone(3, 0, 0);
 			} else {
 				Log_Println(newPlayModeStereo, LOGLEVEL_NOTICE);
-				audio->setTone(0, 0, 0);
 			}
+			audio->setTone(gPlayProperties.gainLowPass, gPlayProperties.gainBandPass, gPlayProperties.gainHighPass);
 		}
 
 		audio->loop();
@@ -971,6 +975,12 @@ void AudioPlayer_VolumeToQueueSender(const int32_t _newVolume, bool reAdjustRota
 		xQueueSend(gVolumeQueue, &_volume, 0);
 		AudioPlayer_PauseOnMinVolume(_volumeBuf, _newVolume);
 	}
+}
+
+// Adds equalizer settings low, band and high pass and readjusts the equalizer
+void AudioPlayer_EqualizerToQueueSender(const int8_t gainLowPass, const int8_t gainBandPass, const int8_t gainHighPass) {
+	int8_t _equalizer[3] = {gainLowPass, gainBandPass, gainHighPass};
+	xQueueSend(gEqualizerQueue, &_equalizer, 0);
 }
 
 // Pauses playback if playback is active and volume is changes from minVolume+1 to minVolume (usually 0)
@@ -1197,7 +1207,7 @@ size_t AudioPlayer_NvsRfidWriteWrapper(const char *_rfidCardId, const char *_tra
 		}
 	}
 
-	snprintf(prefBuf, sizeof(prefBuf) / sizeof(prefBuf[0]), "%s%s%s%u%s%d%s%u", stringDelimiter, trackBuf, stringDelimiter, _playPosition, stringDelimiter, _playMode, stringDelimiter, _trackLastPlayed);
+	snprintf(prefBuf, sizeof(prefBuf) / sizeof(prefBuf[0]), "%s%s%s%" PRIu32 "%s%d%s%" PRIu16, stringDelimiter, trackBuf, stringDelimiter, _playPosition, stringDelimiter, _playMode, stringDelimiter, _trackLastPlayed);
 	Log_Printf(LOGLEVEL_INFO, wroteLastTrackToNvs, prefBuf, _rfidCardId, _playMode, _trackLastPlayed);
 	Log_Println(prefBuf, LOGLEVEL_INFO);
 	Led_SetPause(false);
@@ -1292,7 +1302,7 @@ void AudioPlayer_ClearCover(void) {
 	gPlayProperties.coverFilePos = 0;
 	AudioPlayer_StationLogoUrl = "";
 	// websocket and mqtt notify cover image has changed
-	Web_SendWebsocketData(0, 40);
+	Web_SendWebsocketData(0, WebsocketCodeType::CoverImg);
 #ifdef MQTT_ENABLE
 	publishMqtt(topicCoverChangedState, "", false);
 #endif
@@ -1303,14 +1313,14 @@ void audio_info(const char *info) {
 	Log_Printf(LOGLEVEL_INFO, "info        : %s", info);
 	if (startsWith((char *) info, "slow stream, dropouts")) {
 		// websocket notify for slow stream
-		Web_SendWebsocketData(0, 3);
+		Web_SendWebsocketData(0, WebsocketCodeType::Dropout);
 	}
 }
 
 void audio_id3data(const char *info) { // id3 metadata
 	Log_Printf(LOGLEVEL_INFO, "id3data     : %s", info);
 	// get title
-	if (startsWith((char *) info, "Title:")) {
+	if (startsWith((char *) info, "Title") || startsWith((char *) info, "TITLE=") || startsWith((char *) info, "title=")) { // ID3: "Title:", VORBISCOMMENT: "TITLE=", "title=", "Title="
 		if (gPlayProperties.playlist->size() > 1) {
 			Audio_setTitle("(%u/%u): %s", gPlayProperties.currentTrackNumber + 1, gPlayProperties.playlist->size(), info + 6);
 		} else {
@@ -1360,7 +1370,7 @@ void audio_icyurl(const char *info) { // homepage
 		// has station homepage, get favicon url
 		AudioPlayer_StationLogoUrl = "https://www.google.com/s2/favicons?sz=256&domain_url=" + String(info);
 		// websocket and mqtt notify station logo has changed
-		Web_SendWebsocketData(0, 40);
+		Web_SendWebsocketData(0, WebsocketCodeType::CoverImg);
 	}
 }
 
@@ -1369,7 +1379,7 @@ void audio_icylogo(const char *info) { // logo
 	if (String(info) != "") {
 		AudioPlayer_StationLogoUrl = info;
 		// websocket and mqtt notify station logo has changed
-		Web_SendWebsocketData(0, 40);
+		Web_SendWebsocketData(0, WebsocketCodeType::CoverImg);
 	}
 }
 
@@ -1383,7 +1393,70 @@ void audio_id3image(File &file, const size_t pos, const size_t size) {
 	gPlayProperties.coverFilePos = pos;
 	gPlayProperties.coverFileSize = size;
 	// websocket and mqtt notify cover image has changed
-	Web_SendWebsocketData(0, 40);
+	Web_SendWebsocketData(0, WebsocketCodeType::CoverImg);
+#ifdef MQTT_ENABLE
+	publishMqtt(topicCoverChangedState, "", false);
+#endif
+}
+
+// encoded blockpicture cover image segments (all ogg, vorbis, opus files, some flac files)
+void audio_oggimage(File &file, std::vector<uint32_t> v) {
+	// save decoded cover in /.cache/file.path()
+	String decodedCover = "/.cache";
+	decodedCover.concat(file.path());
+	if (gFSystem.exists(decodedCover)) {
+		Log_Printf(LOGLEVEL_DEBUG, "Cover already cached in %s", decodedCover.c_str());
+	} else {
+		String tmpDecodedCover = decodedCover.substring(0, decodedCover.lastIndexOf('/') + 1); // to prevent coverFile corruption write into temporary file; fixed name since no parallel usage of audioI2S
+		tmpDecodedCover.concat(".tmp");
+		File coverFile = gFSystem.open(tmpDecodedCover, FILE_WRITE, true); // open file with create=true to make sure parent directories are created
+		if (!coverFile) {
+			return;
+		}
+
+		// write fLaC marker in order to use flac Routine, since decoded cover has METADATA_BLOCK_PICTURE like flac
+		constexpr uint8_t flacMarker[] = "fLaC";
+		coverFile.write(flacMarker, std::char_traits<uint8_t>::length(flacMarker));
+
+		const size_t chunkSize = 2048; // must be base64 compatible, i.e. a multiple of 4
+		uint8_t *encodedChunk = (uint8_t *) x_malloc(chunkSize);
+		size_t decodedLength;
+		size_t currentRemainder = 0;
+		size_t currentPosition = file.position(); // save current position in audio file otherwise playback will result in an error
+
+		for (size_t i = 0; i < v.size(); i += 2) {
+			// calculate the number of chunks needed to read the segment
+			size_t numChunks = (v[i + 1] + currentRemainder) / chunkSize;
+			size_t remainder = currentRemainder;
+
+			// read and decode the segment chunk by chunk, write decodedChunk into encodedChunk to save memory
+			file.seek(v[i]);
+			for (size_t chunk = 0; chunk < numChunks; chunk++) {
+				file.readBytes(reinterpret_cast<char *>(&encodedChunk[remainder]), chunkSize - remainder);
+				decodedLength = b64decode(encodedChunk, encodedChunk, chunkSize);
+				coverFile.write(encodedChunk, decodedLength);
+				remainder = 0;
+			}
+
+			// calculate new remainder, read it, and if it is the end of file, decode it
+			currentRemainder = (v[i + 1] + currentRemainder) % chunkSize;
+			if (currentRemainder) {
+				file.readBytes(reinterpret_cast<char *>(&encodedChunk[remainder]), currentRemainder - remainder);
+				if (i == v.size() - 2) {
+					decodedLength = b64decode(encodedChunk, encodedChunk, currentRemainder);
+					coverFile.write(encodedChunk, decodedLength);
+				}
+			}
+		}
+		free(encodedChunk);
+		coverFile.close();
+		file.seek(currentPosition);
+		gFSystem.rename(tmpDecodedCover, decodedCover);
+		Log_Printf(LOGLEVEL_DEBUG, "Cover decoded and cached in %s", decodedCover.c_str());
+	}
+	gPlayProperties.coverFilePos = 1; // flacMarker gives 4 Bytes before METADATA_BLOCK_PICTURE, whereas for flac files audioI2S points 3 Bytes before METADATA_BLOCK_PICTURE, so gPlayProperties.coverFilePos has to be set to 4-3=1
+	// websocket and mqtt notify cover image has changed
+	Web_SendWebsocketData(0, WebsocketCodeType::CoverImg);
 #ifdef MQTT_ENABLE
 	publishMqtt(topicCoverChangedState, "", false);
 #endif
@@ -1393,7 +1466,19 @@ void audio_eof_speech(const char *info) {
 	gPlayProperties.currentSpeechActive = false;
 }
 
-// process audio sample extern (for bluetooth source)
-void audio_process_i2s(uint32_t *sample, bool *continueI2S) {
-	*continueI2S = !Bluetooth_Source_SendAudioData(sample);
+void audio_process_i2s(int16_t *outBuff, uint16_t validSamples, uint8_t bitsPerSample, uint8_t channels, bool *continueI2S) {
+
+	uint32_t sample;
+	for (int i = 0; i < validSamples; i++) {
+		if (channels == 2) {
+			// stereo
+			sample = (uint16_t(outBuff[i * 2]) << 16) | uint16_t(outBuff[i * 2 + 1]);
+			*continueI2S = !Bluetooth_Source_SendAudioData(&sample);
+		}
+		if (channels == 1) {
+			// mono
+			sample = (uint16_t(outBuff[i]) << 16) | uint16_t(outBuff[i]);
+			*continueI2S = !Bluetooth_Source_SendAudioData(&sample);
+		}
+	}
 }
