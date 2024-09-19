@@ -2,6 +2,14 @@
 
 ## DEV-branch
 
+* 19.09.2024: Document the virtual cards in the UI #333, thanks to @caco3 !
+* 18.09.2024: Re-designed tools page (#337), thanks to @caco3 !
+* 16.09.2024: Fix sleep after playlist not toggling nightmode #336, thanks to @dneukirchen !
+* 12.09.2024: PlatformIO package 6.8.1 (Arduino 2.0.17, ESP-IDF 4.4.7)
+* 12.09.2024: Change default settings to match "ESPuino-mini 4Layer" board
+* 11.09.2024: Fix string's expected length for rfid-cmnd via mqtt
+* 11.09.2024: Ignore mqtt messages with length zero
+* 10.09.2024: Porting to new web server library completed
 * 09.06.2024: Consume about 50% less CPU time in Audio library
 * 09.06.2024: Replace 3rd party library toastr (#331), thanks to @trainbird !
 * 09.06.2024: Modernized webserver & optimized JSON delivery (#332)
