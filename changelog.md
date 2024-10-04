@@ -1,6 +1,15 @@
 # Changelog
 
+
 ## DEV-branch
+
+* 29.09.2024: Prepare for Arduino 3.0.5
+* 27.09.2024: PlatformIO package 6.9.0
+
+
+
+
+## Version 2.3 (23.09.2024)
 
 * 19.09.2024: Document the virtual cards in the UI #333, thanks to @caco3 !
 * 18.09.2024: Re-designed tools page (#337), thanks to @caco3 !
@@ -101,7 +110,7 @@
 * 07.11.2023: Set timezone after startup, thanks to @Joe91 !
 
 
-## Version 2 (07.11.2023)
+## Version 2.1 (07.11.2023)
 
 * 04.11.2023: LPCD: wakeup check for ISO-14443 cards also with IRQ connected to port-expander
 * 04.11.2023: Bugfix for showing wrong loglevel
