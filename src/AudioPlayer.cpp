@@ -385,7 +385,7 @@ public:
 };
 
 // Function to play music as task
-void IRAM_ATTR AudioPlayer_Task(void *parameter) {
+void AudioPlayer_Task(void *parameter) {
 #ifdef BOARD_HAS_PSRAM
 	AudioCustom *audio = new AudioCustom();
 #else
