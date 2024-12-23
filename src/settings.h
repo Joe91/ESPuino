@@ -241,8 +241,8 @@
 		#define MINUTE_END			15
 
 		#define NIGHT_MODE_BOOTUP	CMD_SLEEP_TIMER_MOD_30
-		#define MAX_NIGHT_VOLUME	 7
-		#define NIGHT_START_VOLUME	 4
+		#define MAX_NIGHT_VOLUME	 10
+		#define NIGHT_START_VOLUME	 7
 	#endif
 
 
