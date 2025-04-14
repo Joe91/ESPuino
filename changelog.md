@@ -2,6 +2,14 @@
 
 ## DEV-branch
 
+* 22.03.2025: Make PLAY_LAST_RFID_AFTER_REBOOT configurable at runtime
+* 17.03.2025: Refactor <select> fields for buttons & modifications, thanks to @trainbird !
+* 08.03.2025: Bluetooth: Support avrc (buttons), thanks to @sfields !
+* 03.02.2025: ESPAsyncWebServer moved to new location: https://github.com/ESP32Async/ESPAsyncWebServer
+* 03.02.2025: PlatformIO package 6.10.0 (Arduino 2.0.17, ESP-IDF 4.4.7)
+* 28.01.2025: Make led, rotary & button settings configurable at runtime #358
+* 27.12.2024: Fix audio dropouts in BT-Source mode
+* 27.12.2024: ArduinoJson 7 (#357)
 * 18.12.2024: Use saved SSID as LAST_SSID, when no successfull connection was possible #355, thanks to @nona00 !
 * 18.12.2024: Check if #POWER defined, thanks to @QDaniel !
 * 18.12.2024: Prepare for Arduino 3.1.0
