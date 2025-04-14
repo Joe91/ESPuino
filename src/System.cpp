@@ -86,7 +86,6 @@ bool System_SetSleepTimer(uint8_t minutes) {
 		System_SleepTimerStartTimestamp = 0u;
 		System_SleepTimer = 0u;
 		Led_SetNightmode(false);
-		AudioPlayer_ResetToInitialMaxVolume();
 		Log_Println(modificatorSleepd, LOGLEVEL_NOTICE);
 	} else {
 		System_SleepTimerStartTimestamp = millis();

@@ -222,10 +222,6 @@ void setup() {
 		// apply things, if in night-mode
 		if (night_mode) {
 			Cmd_Action(NIGHT_MODE_BOOTUP);
-			AudioPlayer_SetMaxVolumeSpeaker(MAX_NIGHT_VOLUME);
-			AudioPlayer_SetMaxVolume(MAX_NIGHT_VOLUME);
-			// also set volume, since otherwise it can be stuck
-			AudioPlayer_SetCurrentVolume(NIGHT_START_VOLUME);
 		}
 #endif
 	}

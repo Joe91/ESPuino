@@ -61,7 +61,6 @@ void AudioPlayer_TrackQueueDispatcher(const char *_itemToPlay, const uint32_t _l
 void AudioPlayer_TrackControlToQueueSender(const uint8_t trackCommand);
 void AudioPlayer_PauseOnMinVolume(const uint8_t oldVolume, const uint8_t newVolume);
 
-void AudioPlayer_ResetToInitialMaxVolume(void);
 playlistSortMode AudioPlayer_GetPlaylistSortMode(void);
 bool AudioPlayer_SetPlaylistSortMode(playlistSortMode value);
 bool AudioPlayer_SetPlaylistSortMode(uint8_t value);
