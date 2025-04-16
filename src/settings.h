@@ -277,32 +277,32 @@
 	#ifdef MQTT_ENABLE
 		constexpr uint16_t mqttRetryInterval = 60;                // Try to reconnect to MQTT-server every (n) seconds if connection is broken
 		constexpr uint8_t mqttMaxRetriesPerInterval = 1;          // Number of retries per time-interval (mqttRetryInterval). mqttRetryInterval 60 / mqttMaxRetriesPerInterval 1 => once every 60s
-		#define DEVICE_HOSTNAME "ESPuinoA"         // Name that is used for MQTT
-		constexpr const char topicSleepCmnd[] = "Cmnd/ESPuinoA/Sleep";
-		constexpr const char topicSleepState[] = "State/ESPuinoA/Sleep";
-		constexpr const char topicRfidCmnd[] = "Cmnd/ESPuinoA/Rfid";
-		constexpr const char topicRfidState[] = "State/ESPuinoA/Rfid";
-		constexpr const char topicTrackState[] = "State/ESPuinoA/Track";
-		constexpr const char topicTrackControlCmnd[] = "Cmnd/ESPuinoA/TrackControl";
-		constexpr const char topicCoverChangedState[] = "State/ESPuinoA/CoverChanged";
-		constexpr const char topicLoudnessCmnd[] = "Cmnd/ESPuinoA/Loudness";
-		constexpr const char topicLoudnessState[] = "State/ESPuinoA/Loudness";
-		constexpr const char topicSleepTimerCmnd[] = "Cmnd/ESPuinoA/SleepTimer";
-		constexpr const char topicSleepTimerState[] = "State/ESPuinoA/SleepTimer";
-		constexpr const char topicState[] = "State/ESPuinoA/State";
-		constexpr const char topicCurrentIPv4IP[] = "State/ESPuinoA/IPv4";
-		constexpr const char topicLockControlsCmnd[] ="Cmnd/ESPuinoA/LockControls";
-		constexpr const char topicLockControlsState[] ="State/ESPuinoA/LockControls";
-		constexpr const char topicPlaymodeState[] = "State/ESPuinoA/Playmode";
-		constexpr const char topicRepeatModeCmnd[] = "Cmnd/ESPuinoA/RepeatMode";
-		constexpr const char topicRepeatModeState[] = "State/ESPuinoA/RepeatMode";
-		constexpr const char topicLedBrightnessCmnd[] = "Cmnd/ESPuinoA/LedBrightness";
-		constexpr const char topicLedBrightnessState[] = "State/ESPuinoA/LedBrightness";
-		constexpr const char topicWiFiRssiState[] = "State/ESPuinoA/WifiRssi";
-		constexpr const char topicSRevisionState[] = "State/ESPuinoA/SoftwareRevision";
+		#define DEVICE_HOSTNAME "ESPuinoB"         // Name that is used for MQTT
+		constexpr const char topicSleepCmnd[] = "Cmnd/ESPuinoB/Sleep";
+		constexpr const char topicSleepState[] = "State/ESPuinoB/Sleep";
+		constexpr const char topicRfidCmnd[] = "Cmnd/ESPuinoB/Rfid";
+		constexpr const char topicRfidState[] = "State/ESPuinoB/Rfid";
+		constexpr const char topicTrackState[] = "State/ESPuinoB/Track";
+		constexpr const char topicTrackControlCmnd[] = "Cmnd/ESPuinoB/TrackControl";
+		constexpr const char topicCoverChangedState[] = "State/ESPuinoB/CoverChanged";
+		constexpr const char topicLoudnessCmnd[] = "Cmnd/ESPuinoB/Loudness";
+		constexpr const char topicLoudnessState[] = "State/ESPuinoB/Loudness";
+		constexpr const char topicSleepTimerCmnd[] = "Cmnd/ESPuinoB/SleepTimer";
+		constexpr const char topicSleepTimerState[] = "State/ESPuinoB/SleepTimer";
+		constexpr const char topicState[] = "State/ESPuinoB/State";
+		constexpr const char topicCurrentIPv4IP[] = "State/ESPuinoB/IPv4";
+		constexpr const char topicLockControlsCmnd[] ="Cmnd/ESPuinoB/LockControls";
+		constexpr const char topicLockControlsState[] ="State/ESPuinoB/LockControls";
+		constexpr const char topicPlaymodeState[] = "State/ESPuinoB/Playmode";
+		constexpr const char topicRepeatModeCmnd[] = "Cmnd/ESPuinoB/RepeatMode";
+		constexpr const char topicRepeatModeState[] = "State/ESPuinoB/RepeatMode";
+		constexpr const char topicLedBrightnessCmnd[] = "Cmnd/ESPuinoB/LedBrightness";
+		constexpr const char topicLedBrightnessState[] = "State/ESPuinoB/LedBrightness";
+		constexpr const char topicWiFiRssiState[] = "State/ESPuinoB/WifiRssi";
+		constexpr const char topicSRevisionState[] = "State/ESPuinoB/SoftwareRevision";
 		#ifdef BATTERY_MEASURE_ENABLE
-		constexpr const char topicBatteryVoltage[] = "State/ESPuinoA/Voltage";
-		constexpr const char topicBatterySOC[]     = "State/ESPuinoA/Battery";
+		constexpr const char topicBatteryVoltage[] = "State/ESPuinoB/Voltage";
+		constexpr const char topicBatterySOC[]     = "State/ESPuinoB/Battery";
 		#endif
 	#endif
 
