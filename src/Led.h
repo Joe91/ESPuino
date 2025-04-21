@@ -78,6 +78,7 @@ struct LedSettings {
 	uint8_t Led_InitialBrightness = LED_INITIAL_BRIGHTNESS;
 	uint8_t Led_Brightness = LED_INITIAL_BRIGHTNESS;
 	uint8_t Led_NightBrightness = LED_INITIAL_NIGHT_BRIGHTNESS;
+	uint8_t Led_Ambient_Brightness = LED_INITIAL_BRIGHTNESS;
 };
 #endif
 

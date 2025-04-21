@@ -32,6 +32,7 @@ extern t_button gButtons[7]; // next + prev + pplay + rotEnc + button4 + button5
 extern uint8_t gShutdownButton;
 
 static uint32_t Led_Indicators = 0u;
+static bool Led_AmbientLight = false;
 static uint8_t Led_savedBrightness;
 
 // global led settings
@@ -268,7 +269,13 @@ void Led_ToggleNightmode() {
 
 void Led_ToggleAmbientLight() {
 #ifdef NEOPIXEL_ENABLE
-
+	if (Led_AmbientLight) {
+		Led_AmbientLight = false;
+		// Led_SetBrightness(Led_savedBrightness);
+	} else {
+		Led_AmbientLight = true;
+		// Led_SetBrightness(gLedSettings.Led_Ambient_Brightness);
+	}
 #endif
 }
 
@@ -460,92 +467,106 @@ static void Led_Task(void *parameter) {
 			lastLedBrightness = gLedSettings.Led_Brightness;
 		}
 
-		// when there is no delay anymore we have to animate something
-		if (animationTimer <= 0) {
-			AnimationReturnType ret;
-			// animate the current animation
-			switch (activeAnimation) {
-				case LedAnimationType::Boot:
-					ret = Animation_Boot(startNewAnimation, *indicator);
-					break;
+		if (!Led_AmbientLight) {
+			// when there is no delay anymore we have to animate something
+			if (animationTimer <= 0) {
+				AnimationReturnType ret;
+				// animate the current animation
+				switch (activeAnimation) {
+					case LedAnimationType::Boot:
+						ret = Animation_Boot(startNewAnimation, *indicator);
+						break;
 
-				case LedAnimationType::Shutdown:
-					ret = Animation_Shutdown(startNewAnimation, *indicator);
-					break;
+					case LedAnimationType::Shutdown:
+						ret = Animation_Shutdown(startNewAnimation, *indicator);
+						break;
 
-				case LedAnimationType::Error:
-					ret = Animation_Error(startNewAnimation, *indicator);
-					break;
+					case LedAnimationType::Error:
+						ret = Animation_Error(startNewAnimation, *indicator);
+						break;
 
-				case LedAnimationType::Ok:
-					ret = Animation_Ok(startNewAnimation, *indicator);
-					break;
+					case LedAnimationType::Ok:
+						ret = Animation_Ok(startNewAnimation, *indicator);
+						break;
 
-				case LedAnimationType::Volume:
-					ret = Animation_Volume(startNewAnimation, *indicator);
-					break;
+					case LedAnimationType::Volume:
+						ret = Animation_Volume(startNewAnimation, *indicator);
+						break;
 
-				case LedAnimationType::VoltageWarning:
-					ret = Animation_VoltageWarning(startNewAnimation, *indicator);
-					break;
+					case LedAnimationType::VoltageWarning:
+						ret = Animation_VoltageWarning(startNewAnimation, *indicator);
+						break;
 
-				case LedAnimationType::BatteryMeasurement:
-					ret = Animation_BatteryMeasurement(startNewAnimation, *indicator);
-					break;
+					case LedAnimationType::BatteryMeasurement:
+						ret = Animation_BatteryMeasurement(startNewAnimation, *indicator);
+						break;
 
-				case LedAnimationType::Rewind:
-					ret = Animation_Rewind(startNewAnimation, *indicator);
-					break;
+					case LedAnimationType::Rewind:
+						ret = Animation_Rewind(startNewAnimation, *indicator);
+						break;
 
-				case LedAnimationType::Playlist:
-					ret = Animation_PlaylistProgress(startNewAnimation, *indicator);
-					break;
+					case LedAnimationType::Playlist:
+						ret = Animation_PlaylistProgress(startNewAnimation, *indicator);
+						break;
 
-				case LedAnimationType::Idle:
-					ret = Animation_Idle(startNewAnimation, *indicator);
-					break;
+					case LedAnimationType::Idle:
+						ret = Animation_Idle(startNewAnimation, *indicator);
+						break;
 
-				case LedAnimationType::Busy:
-					ret = Animation_Busy(startNewAnimation, *indicator);
-					break;
+					case LedAnimationType::Busy:
+						ret = Animation_Busy(startNewAnimation, *indicator);
+						break;
 
-				case LedAnimationType::Speech:
-					ret = Animation_Speech(startNewAnimation, *indicator);
-					break;
+					case LedAnimationType::Speech:
+						ret = Animation_Speech(startNewAnimation, *indicator);
+						break;
 
-				case LedAnimationType::Pause:
-					ret = Animation_Pause(startNewAnimation, *indicator);
-					break;
+					case LedAnimationType::Pause:
+						ret = Animation_Pause(startNewAnimation, *indicator);
+						break;
 
-				case LedAnimationType::Progress:
-					ret = Animation_Progress(startNewAnimation, *indicator);
-					break;
+					case LedAnimationType::Progress:
+						ret = Animation_Progress(startNewAnimation, *indicator);
+						break;
 
-				case LedAnimationType::Webstream:
-					ret = Animation_Webstream(startNewAnimation, *indicator);
-					break;
+					case LedAnimationType::Webstream:
+						ret = Animation_Webstream(startNewAnimation, *indicator);
+						break;
 
-				default:
-					*indicator = CRGB::Black;
+					default:
+						*indicator = CRGB::Black;
+						FastLED.show();
+						ret.animationActive = false;
+						ret.animationDelay = 50;
+						break;
+				}
+				// apply delay and state from animation
+				animationActive = ret.animationActive;
+				animationTimer = ret.animationDelay;
+				if (ret.animationRefresh) {
 					FastLED.show();
-					ret.animationActive = false;
-					ret.animationDelay = 50;
-					break;
+				}
 			}
-			// apply delay and state from animation
-			animationActive = ret.animationActive;
-			animationTimer = ret.animationDelay;
-			if (ret.animationRefresh) {
-				FastLED.show();
-			}
-		}
 
-		// get the time to wait and delay the task
-		if ((animationTimer > 0) && (animationTimer < taskDelay)) {
-			taskDelay = animationTimer;
+			// get the time to wait and delay the task
+			if ((animationTimer > 0) && (animationTimer < taskDelay)) {
+				taskDelay = animationTimer;
+			}
+			animationTimer -= taskDelay;
+			vTaskDelay(portTICK_PERIOD_MS * taskDelay);
+		} else {
+			// ambient light mode
+			*indicator = CRGB::Black;
+			if (gLedSettings.numIndicatorLeds == 1) {
+				leds[0].setHSV(38, 127, 255);
+			} else {
+				for (uint8_t i = 0; i < gLedSettings.numIndicatorLeds; i++) {
+					leds[i].setHSV(38, 127, 255);
+				}
+			}
+			FastLED.show();
+			vTaskDelay(portTICK_PERIOD_MS * 100);
 		}
-		animationTimer -= taskDelay;
-		vTaskDelay(portTICK_PERIOD_MS * taskDelay);
 	}
 	delete (leds);
 	delete (indicator);
