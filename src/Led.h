@@ -95,3 +95,4 @@ void Led_TaskResume(void);
 void Led_SetNightmode(bool enabled);
 bool Led_GetNightmode();
 void Led_ToggleNightmode();
+void Led_ToggleAmbientLight();
