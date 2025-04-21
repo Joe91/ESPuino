@@ -266,6 +266,12 @@ void Led_ToggleNightmode() {
 #endif
 }
 
+void Led_ToggleAmbientLight() {
+#ifdef NEOPIXEL_ENABLE
+
+#endif
+}
+
 // Calculates physical address for a virtual LED address. This handles reversing the rotation direction of the ring and shifting the starting LED
 #ifdef NEOPIXEL_ENABLE
 uint8_t Led_Address(uint8_t number) {
