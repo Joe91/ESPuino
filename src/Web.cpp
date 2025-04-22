@@ -692,6 +692,7 @@ bool JSONToSettings(JsonObject doc) {
 		JsonObject ledObj = doc["led"];
 		bool success = (gPrefsSettings.putUChar("iLedBrightness", ledObj["initBrightness"].as<uint8_t>()) != 0);
 		success = success && (gPrefsSettings.putUChar("nLedBrightness", ledObj["nightBrightness"].as<uint8_t>()) != 0);
+		success = success && (gPrefsSettings.putUChar("aLedBrightness", ledObj["atmoBrightness"].as<uint8_t>()) != 0);
 		success = success && (gPrefsSettings.putUChar("numIndicator", ledObj["numIndicator"].as<uint8_t>()) != 0);
 		success = success && (gPrefsSettings.putUChar("numControl", ledObj["numControl"].as<uint8_t>()) != 0);
 		success = success && (gPrefsSettings.putUChar("numIdleDots", ledObj["numIdleDots"].as<uint8_t>()) != 0);

@@ -341,7 +341,8 @@
 		"neopixel": {
 			"title": "Neopixel (brightness)",
 			"restart": "After restart",
-			"nightmode": "For nightmode"
+			"nightmode": "For nightmode",
+			"atmomode": "For NightLightMode"
 		},
 		"sleep": {
 			"title": "Deep Sleep",

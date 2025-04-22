@@ -84,6 +84,16 @@ bool Led_LoadSettings(LedSettings &settings) {
 		Log_Println(wroteNmBrightnessToNvs, LOGLEVEL_ERROR);
 	}
 
+	// Get Atmo LED-brightness from NVS
+	uint8_t nvsALedBrightness = gPrefsSettings.getUChar("aLedBrightness", 255);
+	if (nvsALedBrightness != 255) {
+		settings.Led_AmbientBrightness = nvsALedBrightness;
+		Log_Printf(LOGLEVEL_INFO, restoredInitialBrightnessForNmFromNvs, nvsALedBrightness);
+	} else {
+		gPrefsSettings.putUChar("aLedBrightness", settings.Led_AmbientBrightness);
+		Log_Println(wroteNmBrightnessToNvs, LOGLEVEL_ERROR);
+	}
+
 	// Get the number of indicator LEDs from NVS
 	settings.numIndicatorLeds = gPrefsSettings.getUChar("numIndicator", NUM_INDICATOR_LEDS);
 
@@ -271,10 +281,11 @@ void Led_ToggleAmbientLight() {
 #ifdef NEOPIXEL_ENABLE
 	if (Led_AmbientLight) {
 		Led_AmbientLight = false;
-		// Led_SetBrightness(Led_savedBrightness);
+		Led_SetBrightness(Led_savedBrightness);
 	} else {
 		Led_AmbientLight = true;
-		// Led_SetBrightness(gLedSettings.Led_Ambient_Brightness);
+		Led_savedBrightness = gLedSettings.Led_Brightness;
+		Led_SetBrightness(gLedSettings.Led_AmbientBrightness);
 	}
 #endif
 }
