@@ -55,7 +55,6 @@
 	//#define PAUSE_WHEN_RFID_REMOVED       // Playback starts when card is applied and pauses automatically, when card is removed (https://forum.espuino.de/t/neues-feature-pausieren-wenn-rfid-karte-entfernt-wurde/541)
 	#define DONT_ACCEPT_SAME_RFID_TWICE   // RFID-reader doesn't accept the same RFID-tag twice in a row (unless it's a modification-card or RFID-tag is unknown in NVS). Flag will be ignored silently if PAUSE_WHEN_RFID_REMOVED is active. (https://forum.espuino.de/t/neues-feature-dont-accept-same-rfid-twice/1247)
 	//#define HALLEFFECT_SENSOR_ENABLE      // Support for hallsensor. For fine-tuning please adjust HallEffectSensor.h Please note: only user-support provided (https://forum.espuino.de/t/magnetische-hockey-tags/1449/35)
-	#define VOLUMECURVE 1 					// 0=square, 1=logarithmic (1 is more flatten at lower volume)
 
 	//################## set PAUSE_WHEN_RFID_REMOVED behaviour #############################
 	#ifdef PAUSE_WHEN_RFID_REMOVED
@@ -219,6 +218,8 @@
 		#define OFFSET_PAUSE_LEDS		true		// if true the pause-leds are centered in the mid of the LED-Strip
 		#define PROGRESS_HUE_START		105          	// Start and end hue of mulitple-LED progress indicator. Hue ranges from basically 0 - 255, but you can also set numbers outside this range to get the desired effect (e.g. 85-215 will go from green to purple via blue, 341-215 start and end at exactly the same color but go from green to purple via yellow and red)
 		#define PROGRESS_HUE_END		230
+		#define ATMO_HUE				10
+		#define ATMO_SATURATION			180
 		#define DIMMABLE_STATES			50		// Number of dimmed values between two full LEDs (https://forum.espuino.de/t/led-verbesserungen-rework/1739)
 		//#define LED_OFFSET                		0           	// shifts the starting LED in the original direction of the neopixel ring
 	#endif
@@ -288,6 +289,7 @@
 		constexpr const char topicLoudnessCmnd[] = "Cmnd/ESPuinoA/Loudness";
 		constexpr const char topicLoudnessState[] = "State/ESPuinoA/Loudness";
 		constexpr const char topicSleepTimerCmnd[] = "Cmnd/ESPuinoA/SleepTimer";
+		constexpr const char topicAmbientLightCmnd[] = "Cmnd/ESPuinoA/AmbientLight";
 		constexpr const char topicSleepTimerState[] = "State/ESPuinoA/SleepTimer";
 		constexpr const char topicState[] = "State/ESPuinoA/State";
 		constexpr const char topicCurrentIPv4IP[] = "State/ESPuinoA/IPv4";

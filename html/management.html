@@ -965,6 +965,21 @@
 									<i class="fas fa-sun fa-2x .icon-pos"></i>
 								</div>
 							</div>
+							<br>
+							<label for="atmoBrightness" data-i18n="[prepend]general.neopixel.atmomode">:</label>
+							<div class="slider-container">
+								<div class="float-end" style="padding-left: 30px">
+									<i class="far fa-sun fa-2x .icon-pos"></i>
+								</div>
+								<div class="slider-container-inner">
+									<input data-provide="slider" type="number" data-slider-min="0" data-slider-max="255" 
+										min="0" max="255" class="form-control" id="atmoBrightness"
+										name="atmoBrightness" data-slider-value="" value="" required>
+								</div>
+								<div class="float-end" style="padding-left: 10px">
+									<i class="fas fa-sun fa-2x .icon-pos"></i>
+								</div>
+							</div>
 						</fieldset>
 					</div>
 					<div class="col-md-12 mb-4">
@@ -1116,7 +1131,17 @@
 							<div class="hue-slider">
 								<input id="led_hueEnd" type="number" data-provide="slider" data-slider-min="-1" data-slider-max="255"
 									min="-1" max="255" class="form-control" name="led_hueEnd" data-slider-value="-1" value="-1">
-							</div>							
+							</div>
+							<label for="led_hueAtmo" data-i18n="settingsex.led.hueatmo"></label>: <br>
+							<div class="hue-slider">
+								<input id="led_hueAtmo" type="number" data-provide="slider" data-slider-min="-1" data-slider-max="255" min="-1"
+									max="255" class="form-control" name="led_hueAtmo" data-slider-value="-1" value="-1">
+							</div>
+							<label for="led_satAtmo" data-i18n="settingsex.led.satatmo"></label>: <br>
+							<div class="slider-container">
+								<input id="led_satAtmo" type="number" data-provide="slider" data-slider-min="-1" data-slider-max="255" min="-1"
+									max="255" class="form-control" name="led_satAtmo" data-slider-value="-1" value="-1">
+							</div>
 							<label for="led_dimStates" data-i18n="settingsex.led.dimmablestates"></label>: <br>
 							<input type="number" class="form-control" id="led_dimStates" name="led_dimStates"><br>
 							<label for="led_offsetStart" data-i18n="settingsex.led.offset"></label>: <br>
@@ -2169,12 +2194,15 @@
 				document.getElementById('neopixelConfig').setAttribute('data-visible', true);
 				$('#initBrightness').bootstrapSlider('setValue', ledSettings.initBrightness);
 				$('#nightBrightness').bootstrapSlider('setValue', ledSettings.nightBrightness);
+				$('#atmoBrightness').bootstrapSlider('setValue', ledSettings.atmoBrightness);
 				document.getElementById('led_numIndicator').value = ledSettings.numIndicator;
 				document.getElementById('led_numControl').value = ledSettings.numControl;
 				listControlColors(ledSettings.numControl, ledSettings.controlColors);
 				document.getElementById('led_idleDots').value = ledSettings.numIdleDots;
 				$('#led_hueStart').bootstrapSlider('setValue', ledSettings.hueStart);
 				$('#led_hueEnd').bootstrapSlider('setValue', ledSettings.hueEnd);
+				$('#led_hueAtmo').bootstrapSlider('setValue', ledSettings.hueAtmo);
+				$('#led_satAtmo').bootstrapSlider('setValue', ledSettings.satAtmo);
 				document.getElementById('led_dimStates').value = ledSettings.dimStates;
 				$('#led_offsetPause').prop('checked', ledSettings.offsetPause);
 				$('#led_reverseRotation').prop('checked', ledSettings.reverseRot);
@@ -2502,12 +2530,15 @@
 				"led": {
 					initBrightness: Number($('#initBrightness').val()),
 					nightBrightness: Number($('#nightBrightness').val()),
+					atmoBrightness: Number($('#atmoBrightness').val()),
 					numIndicator: Number(document.getElementById("led_numIndicator").value),
 					numControl: Number(document.getElementById("led_numControl").value),
 					controlColors: [],
 					numIdleDots: Number(document.getElementById("led_idleDots").value),
 					hueStart: Number($('#led_hueStart').val()),
 					hueEnd: Number($('#led_hueEnd').val()),
+					hueAtmo: Number($('#led_hueAtmo').val()),
+					satAtmo: Number($('#led_satAtmo').val()),
 					dimStates: Number(document.getElementById("led_dimStates").value),
 					offsetPause: $('#led_offsetPause').prop('checked'),
 					reverseRot: $('#led_reverseRotation').prop('checked'),
@@ -3047,7 +3078,7 @@
 			const cmdElem = document.createElement('select');
 			const cmdNothing = addOption(cmdElem, 0);
 			cmdNothing.setAttribute('data-i18n', "settingsex.buttons.noaction");
-			const cmds = [170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 199, 150, 151, 152, 120, 100, 101, 102, 103, 104, 105, 106, 107, 110, 111];
+			const cmds = [170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 199, 150, 151, 152, 153, 120, 100, 101, 102, 103, 104, 105, 106, 107, 110, 111];
 			for(const cmd of cmds) {
 				addOption(cmdElem, cmd);
 			}
@@ -3057,7 +3088,7 @@
 
 			/* The <select /> that houses all commands for the modification selectors */
 			const modElem = document.createElement('select');
-			const mods = [100, 179, 101, 102, 103, 104, 105, 106, 110, 111, 120, 130, 140, 141, 142, 150, 151, 152, 0, 170, 171, 172, 173, 174, 180, 181];
+			const mods = [100, 179, 101, 102, 103, 104, 105, 106, 110, 111, 120, 130, 140, 141, 142, 150, 151, 152, 153, 0, 170, 171, 172, 173, 174, 180, 181];
 			for(const mod of mods) {
 				addOption(modElem, mod);
 			}
