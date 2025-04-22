@@ -287,6 +287,7 @@
 		constexpr const char topicLoudnessCmnd[] = "Cmnd/ESPuinoA/Loudness";
 		constexpr const char topicLoudnessState[] = "State/ESPuinoA/Loudness";
 		constexpr const char topicSleepTimerCmnd[] = "Cmnd/ESPuinoA/SleepTimer";
+		constexpr const char topicAmbientLightCmnd[] = "Cmnd/ESPuinoA/AmbientLight";
 		constexpr const char topicSleepTimerState[] = "State/ESPuinoA/SleepTimer";
 		constexpr const char topicState[] = "State/ESPuinoA/State";
 		constexpr const char topicCurrentIPv4IP[] = "State/ESPuinoA/IPv4";
