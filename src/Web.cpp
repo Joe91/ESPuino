@@ -699,6 +699,8 @@ bool JSONToSettings(JsonObject doc) {
 		success = success && (gPrefsSettings.putBool("offsetPause", ledObj["offsetPause"].as<bool>()) != 0);
 		success = success && (gPrefsSettings.putShort("hueStart", ledObj["hueStart"].as<int16_t>()) != 0);
 		success = success && (gPrefsSettings.putShort("hueEnd", ledObj["hueEnd"].as<int16_t>()) != 0);
+		success = success && (gPrefsSettings.putShort("hueAtmo", ledObj["hueAtmo"].as<int16_t>()) != 0);
+		success = success && (gPrefsSettings.putShort("satAtmo", ledObj["satAtmo"].as<int16_t>()) != 0);
 		success = success && (gPrefsSettings.putUChar("dimStates", ledObj["dimStates"].as<uint8_t>()) != 0);
 		success = success && (gPrefsSettings.putBool("ledReverseRot", ledObj["reverseRot"].as<bool>()) != 0);
 		success = success && (gPrefsSettings.putUChar("ledOffset", ledObj["offsetStart"].as<uint8_t>()) != 0);
@@ -983,6 +985,8 @@ static void settingsToJSON(JsonObject obj, const String section) {
 		ledObj["offsetPause"].set(gPrefsSettings.getBool("offsetPause", OFFSET_PAUSE_LEDS));
 		ledObj["hueStart"].set(gPrefsSettings.getShort("hueStart", PROGRESS_HUE_START));
 		ledObj["hueEnd"].set(gPrefsSettings.getShort("hueEnd", PROGRESS_HUE_END));
+		ledObj["hueAtmo"].set(gPrefsSettings.getShort("hueAtmo", ATMO_HUE));
+		ledObj["satAtmo"].set(gPrefsSettings.getShort("satAtmo", ATMO_SATURATION));
 		ledObj["dimStates"].set(gPrefsSettings.getUChar("dimStates", DIMMABLE_STATES));
 		ledObj["reverseRot"].set(gPrefsSettings.getBool("ledReverseRot", false));
 		ledObj["offsetStart"].set(gPrefsSettings.getUChar("ledOffset", 0));
@@ -1075,6 +1079,8 @@ static void settingsToJSON(JsonObject obj, const String section) {
 		ledSettings["offsetPause"].set(OFFSET_PAUSE_LEDS); // OFFSET_PAUSE_LEDS
 		ledSettings["hueStart"].set(PROGRESS_HUE_START); // PROGRESS_HUE_START
 		ledSettings["hueEnd"].set(PROGRESS_HUE_END); // PROGRESS_HUE_END
+		ledSettings["hueAtmo"].set(ATMO_HUE);
+		ledSettings["satAtmo"].set(ATMO_SATURATION);
 		ledSettings["dimStates"].set(DIMMABLE_STATES); // DIMMABLE_STATES
 	#ifdef NEOPIXEL_REVERSE_ROTATION
 		ledSettings["reverseRot"].set(true);

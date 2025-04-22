@@ -44,6 +44,8 @@
 			"offsetpause": "LED pause centre",
 			"huestart": "Début de la couleur",
 			"hueend": "Fin de la couleur",
+			"hueatmo": "Couleur d'ambiance",
+			"satatmo": "Saturation d'ambiance",
 			"dimmablestates": "Étapes à gradation",
 			"reverserotation": "Inversion du sens de rotation",
 			"offset": "Début de l'offset LED"
@@ -342,7 +344,7 @@
 			"title": "Neopixel (luminosité)",
 			"restart": "Après le redémarrage",
 			"nightmode": "Pour le mode nuit",
-			"atmomode": "Por le nuit ambiante"
+			"atmomode": "Pour le mode ambiance"
 		},
 		"sleep": {
 			"title": "Veille profonde",

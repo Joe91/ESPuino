@@ -70,6 +70,8 @@ struct LedSettings {
 	bool offsetLedPause = OFFSET_PAUSE_LEDS;
 	int16_t progressHueStart = PROGRESS_HUE_START;
 	int16_t progressHueEnd = PROGRESS_HUE_END;
+	int16_t atmoHue = ATMO_HUE;
+	int16_t atmoSaturation = ATMO_SATURATION;
 	uint8_t dimmableStates = DIMMABLE_STATES;
 	bool neopixelReverseRotation;
 	uint8_t ledOffset;

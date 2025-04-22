@@ -115,9 +115,12 @@ bool Led_LoadSettings(LedSettings &settings) {
 	// get dimmableStates from NVS
 	settings.dimmableStates = gPrefsSettings.getUChar("dimStates", DIMMABLE_STATES);
 
-	// get hui start/end from NVS
+	// get hue start/end from NVS
 	settings.progressHueStart = gPrefsSettings.getShort("hueStart", PROGRESS_HUE_START);
 	settings.progressHueEnd = gPrefsSettings.getShort("hueEnd", PROGRESS_HUE_END);
+	// get atmo light from NVS
+	settings.atmoHue = gPrefsSettings.getShort("hueAtmo", PROGRESS_HUE_START);
+	settings.atmoSaturation = gPrefsSettings.getShort("satAtmo", PROGRESS_HUE_END);
 
 	// get reverse rotation from NVS
 	#ifdef NEOPIXEL_REVERSE_ROTATION
@@ -592,10 +595,10 @@ static void Led_Task(void *parameter) {
 			// ambient light mode
 			*indicator = CRGB::Black;
 			if (gLedSettings.numIndicatorLeds == 1) {
-				leds[0].setHSV(38, 127, 255);
+				leds[0].setHSV(gLedSettings.atmoHue, gLedSettings.atmoSaturation, 255);
 			} else {
 				for (uint8_t i = 0; i < gLedSettings.numIndicatorLeds; i++) {
-					leds[i].setHSV(38, 127, 255);
+					leds[i].setHSV(gLedSettings.atmoHue, gLedSettings.atmoSaturation, 255);
 				}
 			}
 			FastLED.show();

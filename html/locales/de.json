@@ -44,6 +44,8 @@
 			"offsetpause": "Pausen-LEDs zentrieren",
 			"huestart": "Farbton-Start (Playlist-Fortschritt)",
 			"hueend": "Farbton-Ende (Playlist-Fortschritt)",
+			"hueatmo": "Farbton-Atmolight",
+			"satatmo": "Sättigung-Atmolight",
 			"dimmablestates": "Dimmbare Stufen",
 			"reverserotation": "Drehrichtung umkehren",
 			"offset": "Offset Start-LED"
@@ -342,7 +344,7 @@
 			"title": "Neopixel (Helligkeit)",
 			"restart": "Nach dem Einschalten",
 			"nightmode": "Im Nachtmodus",
-			"atmomode": "Im Nachtlichtmodus"
+			"atmomode": "Im Atmolight-Modus"
 		},
 		"sleep": {
 			"title": "Deep Sleep",
