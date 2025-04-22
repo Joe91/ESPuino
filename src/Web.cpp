@@ -960,6 +960,7 @@ static void settingsToJSON(JsonObject obj, const String section) {
 		JsonObject ledObj = obj["led"].to<JsonObject>();
 		ledObj["initBrightness"].set(gPrefsSettings.getUChar("iLedBrightness", 0));
 		ledObj["nightBrightness"].set(gPrefsSettings.getUChar("nLedBrightness", 0));
+		ledObj["atmoBrightness"].set(gPrefsSettings.getUChar("aLedBrightness", 0));
 		ledObj["numIndicator"].set(gPrefsSettings.getUChar("numIndicator", NUM_INDICATOR_LEDS));
 		uint8_t numControlLeds = gPrefsSettings.getUChar("numControl", NUM_CONTROL_LEDS);
 		ledObj["numControl"].set(numControlLeds);
@@ -1067,6 +1068,7 @@ static void settingsToJSON(JsonObject obj, const String section) {
 		JsonObject ledSettings = defaultsObj["led"].to<JsonObject>();
 		ledSettings["initBrightness"].set(16u); // LED_INITIAL_BRIGHTNESS
 		ledSettings["nightBrightness"].set(2u); // LED_INITIAL_NIGHT_BRIGHTNESS
+		ledSettings["atmoBrightness"].set(30u); // LED_INITIAL_NIGHT_BRIGHTNESS
 		ledSettings["numIndicator"].set(NUM_INDICATOR_LEDS); // NUM_INDICATOR_LEDS
 		ledSettings["numControl"].set(NUM_CONTROL_LEDS); // NUM_CONTROL_LEDS
 		ledSettings["numIdleDots"].set(NUM_LEDS_IDLE_DOTS); // NUM_LEDS_IDLE_DOTS

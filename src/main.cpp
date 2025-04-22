@@ -222,6 +222,11 @@ void setup() {
 		// apply things, if in night-mode
 		if (night_mode) {
 			Cmd_Action(NIGHT_MODE_BOOTUP);
+			if (gPrefsSettings.getBool("atmoActive", false)) {
+				Led_SetAmbientLight(true);
+			}
+		} else {
+			gPrefsSettings.putBool("atmoActive", false);
 		}
 #endif
 	}

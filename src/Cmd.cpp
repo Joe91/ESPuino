@@ -188,7 +188,6 @@ void Cmd_Action(const uint16_t mod) {
 		}
 
 		case CMD_TOGGLE_AMBIENT_LIGHT: {
-			System_IndicateOk();
 			Led_ToggleAmbientLight();
 			break;
 		}

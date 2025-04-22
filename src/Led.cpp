@@ -32,7 +32,6 @@ extern t_button gButtons[7]; // next + prev + pplay + rotEnc + button4 + button5
 extern uint8_t gShutdownButton;
 
 static uint32_t Led_Indicators = 0u;
-static bool Led_AmbientLight = false;
 static uint8_t Led_savedBrightness;
 
 // global led settings
@@ -88,10 +87,13 @@ bool Led_LoadSettings(LedSettings &settings) {
 	uint8_t nvsALedBrightness = gPrefsSettings.getUChar("aLedBrightness", 255);
 	if (nvsALedBrightness != 255) {
 		settings.Led_AmbientBrightness = nvsALedBrightness;
-		Log_Printf(LOGLEVEL_INFO, restoredInitialBrightnessForNmFromNvs, nvsALedBrightness);
+		if (settings.Led_AmbientLight) {
+			settings.Led_Brightness = nvsALedBrightness;
+		}
+		Log_Printf(LOGLEVEL_INFO, "restored ambient brightnes : %d", nvsALedBrightness); // TODO-> other message
 	} else {
 		gPrefsSettings.putUChar("aLedBrightness", settings.Led_AmbientBrightness);
-		Log_Println(wroteNmBrightnessToNvs, LOGLEVEL_ERROR);
+		Log_Println("wrote settings of ambient to nvs", LOGLEVEL_ERROR); // TODO-> other message
 	}
 
 	// Get the number of indicator LEDs from NVS
@@ -277,16 +279,37 @@ void Led_ToggleNightmode() {
 #endif
 }
 
-void Led_ToggleAmbientLight() {
+void Led_SetAmbientLight(bool enabled) {
 #ifdef NEOPIXEL_ENABLE
-	if (Led_AmbientLight) {
-		Led_AmbientLight = false;
-		Led_SetBrightness(Led_savedBrightness);
-	} else {
-		Led_AmbientLight = true;
+	if (gLedSettings.Led_AmbientLight == enabled) {
+		// we don't need to do anything
+		return;
+	}
+
+	if (enabled) {
+		gLedSettings.Led_AmbientLight = true;
 		Led_savedBrightness = gLedSettings.Led_Brightness;
 		Led_SetBrightness(gLedSettings.Led_AmbientBrightness);
+		gPrefsSettings.putBool("atmoActive", true);
+	} else {
+		gLedSettings.Led_AmbientLight = false;
+		Led_SetBrightness(Led_savedBrightness);
+		gPrefsSettings.putBool("atmoActive", false);
 	}
+#endif
+}
+
+bool Led_GetAmbientLight() {
+#ifdef NEOPIXEL_ENABLE
+	return gLedSettings.Led_AmbientLight;
+#else
+	return false;
+#endif
+}
+
+void Led_ToggleAmbientLight() {
+#ifdef NEOPIXEL_ENABLE
+	Led_SetAmbientLight(!gLedSettings.Led_AmbientLight);
 #endif
 }
 
@@ -478,7 +501,7 @@ static void Led_Task(void *parameter) {
 			lastLedBrightness = gLedSettings.Led_Brightness;
 		}
 
-		if (!Led_AmbientLight) {
+		if (!gLedSettings.Led_AmbientLight || (activeAnimation == LedAnimationType::Shutdown)) {
 			// when there is no delay anymore we have to animate something
 			if (animationTimer <= 0) {
 				AnimationReturnType ret;
@@ -576,6 +599,9 @@ static void Led_Task(void *parameter) {
 				}
 			}
 			FastLED.show();
+			activeAnimation = LedAnimationType::NoNewAnimation;
+			animationActive = false;
+			animationTimer = 0;
 			vTaskDelay(portTICK_PERIOD_MS * 100);
 		}
 	}
