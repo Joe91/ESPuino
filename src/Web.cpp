@@ -11,9 +11,6 @@
 #include "Common.h"
 #include "ESPAsyncWebServer.h"
 #include "EnumUtils.h"
-#ifdef NEOPIXEL_ENABLE
-	#include <FastLED.h>
-#endif
 #include "Ftp.h"
 #include "HTMLbinary.h"
 #include "HallEffectSensor.h"
@@ -445,8 +442,8 @@ void webserverStart(void) {
 
 				if (!index) {
 					// pause some tasks to get more free CPU time for the upload
-					vTaskSuspend(AudioTaskHandle);
-					Led_TaskPause();
+					// Audio_TaskPause();
+					// Led_TaskPause();
 					Rfid_TaskPause();
 					Update.begin();
 					Log_Println(fwStart, LOGLEVEL_NOTICE);
@@ -458,8 +455,8 @@ void webserverStart(void) {
 				if (final) {
 					Update.end(true);
 					// resume the paused tasks
-					Led_TaskResume();
-					vTaskResume(AudioTaskHandle);
+					// Led_TaskResume();
+					// Audio_TaskResume();
 					Rfid_TaskResume();
 					Log_Println(fwEnd, LOGLEVEL_NOTICE);
 					if (Update.hasError()) {
@@ -651,6 +648,8 @@ bool JSONToSettings(JsonObject doc) {
 		success = success && (gPrefsSettings.putBool("savePosShutdown", generalObj["savePosShutdown"].as<bool>()) != 0);
 		success = success && (gPrefsSettings.putBool("savePosRfidChge", generalObj["savePosRfidChge"].as<bool>()) != 0);
 		success = success && (gPrefsSettings.putBool("playLastOnBoot", generalObj["playLastRfidOnReboot"].as<bool>()) != 0);
+		success = success && (gPrefsSettings.putBool("pauseRfidRem", generalObj["pauseIfRfidRemoved"].as<bool>()) != 0);
+		success = success && (gPrefsSettings.putBool("dAccRfidTwice", generalObj["dontAcceptRfidTwice"].as<bool>()) != 0);
 		success = success && (gPrefsSettings.putBool("pauseOnMinVol", generalObj["pauseOnMinVol"].as<bool>()) != 0);
 		success = success && (gPrefsSettings.putBool("recoverVolBoot", generalObj["recoverVolBoot"].as<bool>()) != 0);
 		success = success && (gPrefsSettings.putUChar("volumeCurve", generalObj["volumeCurve"].as<uint8_t>()) != 0);
@@ -661,6 +660,14 @@ bool JSONToSettings(JsonObject doc) {
 		gPlayProperties.newPlayMono = generalObj["playMono"].as<bool>();
 		gPlayProperties.SavePlayPosRfidChange = generalObj["savePosRfidChge"].as<bool>();
 		gPlayProperties.pauseOnMinVolume = generalObj["pauseOnMinVol"].as<bool>();
+		gPlayProperties.pauseIfRfidRemoved = generalObj["pauseIfRfidRemoved"].as<bool>();
+		if (gPlayProperties.pauseIfRfidRemoved) {
+			// ignore feature silently if PAUSE_WHEN_RFID_REMOVED is active
+			Log_Println("pauseIfRfidRemoved is enabled -> deactivate dontAcceptRfidTwice", LOGLEVEL_NOTICE);
+			gPlayProperties.dontAcceptRfidTwice = false;
+		} else {
+			gPlayProperties.dontAcceptRfidTwice = generalObj["dontAcceptRfidTwice"].as<bool>();
+		}
 	}
 	if (doc["equalizer"].is<JsonObject>()) {
 		int8_t _gainLowPass = doc["equalizer"]["gainLowPass"].as<int8_t>();
@@ -672,7 +679,7 @@ bool JSONToSettings(JsonObject doc) {
 			Log_Printf(LOGLEVEL_ERROR, webSaveSettingsError, "equalizer");
 			return false;
 		} else {
-			AudioPlayer_EqualizerToQueueSender(_gainLowPass, _gainBandPass, _gainHighPass);
+			AudioPlayer_SetEqualizer(_gainLowPass, _gainBandPass, _gainHighPass);
 		}
 	}
 	if (doc["wifi"].is<JsonObject>()) {
@@ -859,9 +866,9 @@ bool JSONToSettings(JsonObject doc) {
 		char rfidString[275];
 		snprintf(rfidString, sizeof(rfidString) / sizeof(rfidString[0]), "%s%s%s0%s%u%s0", stringDelimiter, _fileOrUrlAscii, stringDelimiter, stringDelimiter, _playMode, stringDelimiter);
 		gPrefsRfid.putString(_rfidIdAssinId, rfidString);
-#ifdef DONT_ACCEPT_SAME_RFID_TWICE_ENABLE
+		if (gPlayProperties.dontAcceptRfidTwice) {
 		Rfid_ResetOldRfid(); // Set old rfid-id to crap in order to allow to re-apply a new assigned rfid-tag exactly once
-#endif
+		}
 
 		String s = gPrefsRfid.getString(_rfidIdAssinId, "-1");
 		if (s.compareTo(rfidString)) {
@@ -879,7 +886,7 @@ bool JSONToSettings(JsonObject doc) {
 		const JsonObject controlsObj = doc["controls"].as<JsonObject>();
 		if (controlsObj["set_volume"].is<uint8_t>()) {
 			uint8_t new_vol = controlsObj["set_volume"].as<uint8_t>();
-			AudioPlayer_VolumeToQueueSender(new_vol, true);
+			AudioPlayer_SetVolume(new_vol, true);
 		}
 		if (controlsObj["action"].is<uint8_t>()) {
 			uint8_t cmd = controlsObj["action"].as<uint8_t>();
@@ -926,6 +933,8 @@ static void settingsToJSON(JsonObject obj, const String section) {
 		generalObj["savePosShutdown"].set(gPrefsSettings.getBool("savePosShutdown", false)); // SAVE_PLAYPOS_BEFORE_SHUTDOWN
 		generalObj["savePosRfidChge"].set(gPrefsSettings.getBool("savePosRfidChge", false)); // SAVE_PLAYPOS_WHEN_RFID_CHANGE
 		generalObj["playLastRfidOnReboot"].set(gPrefsSettings.getBool("playLastOnBoot", false)); // PLAY_LAST_RFID_AFTER_REBOOT
+		generalObj["pauseIfRfidRemoved"].set(gPrefsSettings.getBool("pauseRfidRem", false)); // PAUSE_WHEN_RFID_REMOVED
+		generalObj["dontAcceptRfidTwice"].set(gPrefsSettings.getBool("dAccRfidTwice", false)); // DONT_ACCEPT_SAME_RFID_TWICE
 		generalObj["pauseOnMinVol"].set(gPrefsSettings.getBool("pauseOnMinVol", false)); // PAUSE_ON_MIN_VOLUME
 		generalObj["recoverVolBoot"].set(gPrefsSettings.getBool("recoverVolBoot", false)); // USE_LAST_VOLUME_AFTER_REBOOT
 		generalObj["volumeCurve"].set(gPrefsSettings.getUChar("volumeCurve", 0)); // VOLUMECURVE
@@ -1061,6 +1070,8 @@ static void settingsToJSON(JsonObject obj, const String section) {
 		genSettings["savePosShutdown"].set(false); // SAVE_PLAYPOS_BEFORE_SHUTDOWN
 		genSettings["savePosRfidChge"].set(false); // SAVE_PLAYPOS_WHEN_RFID_CHANGE
 		genSettings["playLastRfidOnReboot"].set(false); // PLAY_LAST_RFID_AFTER_REBOOT
+		genSettings["pauseIfRfidRemoved"].set(false); // PAUSE_WHEN_RFID_REMOVED
+		genSettings["dontAcceptRfidTwice"].set(false); // DONT_ACCEPT_SAME_RFID_TWICE
 		genSettings["pauseOnMinVol"].set(false); // PAUSE_ON_MIN_VOLUME
 		genSettings["recoverVolBoot"].set(false); // USE_LAST_VOLUME_AFTER_REBOOT
 		genSettings["volumeCurve"].set(0u); // VOLUME_CURVE
@@ -1637,8 +1648,8 @@ void explorerHandleFileStorageTask(void *parameter) {
 	uploadFile.setBufferSize(chunk_size);
 
 	// pause some tasks to get more free CPU time for the upload
-	vTaskSuspend(AudioTaskHandle);
-	Led_TaskPause();
+	// Audio_TaskPause();
+	// Led_TaskPause();
 	Rfid_TaskPause();
 
 	for (;;) {
@@ -1675,8 +1686,8 @@ void explorerHandleFileStorageTask(void *parameter) {
 				Log_Println(webTxCanceled, LOGLEVEL_ERROR);
 				free(parameter);
 				// resume the paused tasks
-				Led_TaskResume();
-				vTaskResume(AudioTaskHandle);
+				// Led_TaskResume();
+				// Audio_TaskResume();
 				Rfid_TaskResume();
 				// destroy double buffer memory, since the upload was interrupted
 				destroyDoubleBuffer();
@@ -1690,8 +1701,8 @@ void explorerHandleFileStorageTask(void *parameter) {
 	}
 	free(parameter);
 	// resume the paused tasks
-	Led_TaskResume();
-	vTaskResume(AudioTaskHandle);
+	// Led_TaskResume();
+	// Audio_TaskResume();
 	Rfid_TaskResume();
 	// send signal to upload function to terminate
 	xSemaphoreGive(explorerFileUploadFinished);
@@ -1918,10 +1929,10 @@ void explorerHandleAudioRequest(AsyncWebServerRequest *request) {
 		playModeString = param->value();
 
 		playMode = atoi(playModeString.c_str());
-#ifdef DONT_ACCEPT_SAME_RFID_TWICE_ENABLE
+		if (gPlayProperties.dontAcceptRfidTwice) {
 		Rfid_ResetOldRfid();
-#endif
-		AudioPlayer_TrackQueueDispatcher(filePath, 0, playMode, 0);
+		}
+		AudioPlayer_SetPlaylist(filePath, 0, playMode, 0);
 	} else {
 		Log_Println("AUDIO: No path variable set", LOGLEVEL_ERROR);
 	}

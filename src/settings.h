@@ -165,7 +165,7 @@
 
 	// Buttons (better leave unchanged if in doubts :-))
 	constexpr uint8_t buttonDebounceInterval = 50;                // Interval in ms to software-debounce buttons
-	constexpr uint16_t intervalToLongPress = 900;                 // Interval in ms to distinguish between short and long press of buttons
+	constexpr uint16_t intervalToLongPress = 700;                 // Interval in ms to distinguish between short and long press of buttons
 
 	// Buttons active state: Default 0 for active LOW, 1 for active HIGH e.g. for TTP223 Capacitive Touch Switch Button (FinnBox)
 	#define BUTTON_0_ACTIVE_STATE 0
@@ -276,8 +276,6 @@
 
 	// (optional) Topics for MQTT
 	#ifdef MQTT_ENABLE
-		constexpr uint16_t mqttRetryInterval = 60;                // Try to reconnect to MQTT-server every (n) seconds if connection is broken
-		constexpr uint8_t mqttMaxRetriesPerInterval = 1;          // Number of retries per time-interval (mqttRetryInterval). mqttRetryInterval 60 / mqttMaxRetriesPerInterval 1 => once every 60s
 		#define DEVICE_HOSTNAME "ESPuinoB"         // Name that is used for MQTT
 		constexpr const char topicSleepCmnd[] = "Cmnd/ESPuinoB/Sleep";
 		constexpr const char topicSleepState[] = "State/ESPuinoB/Sleep";

@@ -89,6 +89,10 @@
 			opacity: 0;
 		}
 
+		.sat-slider .slider-track {
+			background: linear-gradient(to right in hsl, #000, #fff);
+		}
+
 		legend.scheduler-border {
 			width: inherit;
 			/* Or auto */
@@ -894,42 +898,78 @@
 						</fieldset>
 					</div>
 					<div class="col-md-12 mb-4" id="optionsConfig">
-						<fieldset >
+						<fieldset>
 							<legend class="w-auto" data-i18n="general.options.title"></legend><br>
 							<div class="d-flex gap-2">
-								<input type="checkbox" id="savePlayPosShutdown" name="savePlayPosShutdown" value="false">
-								<label for="savePlayPosShutdown" data-i18n="general.options.savePlayPosShutdown"></label>
-								<a href="#" class="link-secondary" data-bs-toggle="popover" data-i18n="[data-bs-content]general.options.savePlayPosShutdownExp" tabindex="0"><i class="fas fa-circle-question"></i></a>
+								<input type="checkbox" id="savePlayPosShutdown" name="savePlayPosShutdown"
+									value="false">
+								<label for="savePlayPosShutdown"
+									data-i18n="general.options.savePlayPosShutdown"></label>
+								<a href="#" class="link-secondary" data-bs-toggle="popover"
+									data-i18n="[data-bs-content]general.options.savePlayPosShutdownExp" tabindex="0"><i
+										class="fas fa-circle-question"></i></a>
 							</div>
 							<div class="d-flex gap-2">
-								<input type="checkbox" id="savePlayPosRfidChange" name="savePlayPosRfidChange" value="false">
-								<label for="savePlayPosRfidChange" data-i18n="general.options.savePlayPosRfidChange"></label>
-								<a href="#" class="link-secondary" data-bs-toggle="popover" data-i18n="[data-bs-content]general.options.savePlayPosRfidChangeExp" tabindex="0"><i class="fas fa-circle-question"></i></a>
+								<input type="checkbox" id="savePlayPosRfidChange" name="savePlayPosRfidChange"
+									value="false">
+								<label for="savePlayPosRfidChange"
+									data-i18n="general.options.savePlayPosRfidChange"></label>
+								<a href="#" class="link-secondary" data-bs-toggle="popover"
+									data-i18n="[data-bs-content]general.options.savePlayPosRfidChangeExp"
+									tabindex="0"><i class="fas fa-circle-question"></i></a>
 							</div>
 							<div class="d-flex gap-2">
-								<input type="checkbox" id="playLastRfidOnReboot" name="playLastRfidOnReboot" value="false">
-								<label for="playLastRfidOnReboot" data-i18n="general.options.playLastRfidOnReboot"></label>
-								<a href="#" class="link-secondary" data-bs-toggle="popover" data-i18n="[data-bs-content]general.options.playLastRfidOnRebootExp" tabindex="0"><i class="fas fa-circle-question"></i></a>
+								<input type="checkbox" id="playLastRfidOnReboot" name="playLastRfidOnReboot"
+									value="false">
+								<label for="playLastRfidOnReboot"
+									data-i18n="general.options.playLastRfidOnReboot"></label>
+								<a href="#" class="link-secondary" data-bs-toggle="popover"
+									data-i18n="[data-bs-content]general.options.playLastRfidOnRebootExp" tabindex="0"><i
+										class="fas fa-circle-question"></i></a>
+							</div>
+							<div class="d-flex gap-2">
+								<input type="checkbox" id="pauseIfRfidRemoved" name="pauseIfRfidRemoved" value="false">
+								<label for="pauseIfRfidRemoved" data-i18n="general.options.pauseIfRfidRemoved"></label>
+								<a href="#" class="link-secondary" data-bs-toggle="popover"
+									data-i18n="[data-bs-content]general.options.pauseIfRfidRemovedExp" tabindex="0"><i
+										class="fas fa-circle-question"></i></a>
+							</div>
+							<div class="d-flex gap-2">
+								<input type="checkbox" id="dontAcceptRfidTwice" name="dontAcceptRfidTwice"
+									value="false">
+								<label for="dontAcceptRfidTwice"
+									data-i18n="general.options.dontAcceptRfidTwice"></label>
+								<a href="#" class="link-secondary" data-bs-toggle="popover"
+									data-i18n="[data-bs-content]general.options.dontAcceptRfidTwiceExp" tabindex="0"><i
+										class="fas fa-circle-question"></i></a>
 							</div>
 							<div class="d-flex gap-2">
 								<input type="checkbox" id="pauseOnMinVolume" name="pauseOnMinVolume" value="false">
 								<label for="pauseOnMinVolume" data-i18n="general.options.pauseOnMinVolume"></label>
-								<a href="#" class="link-secondary" data-bs-toggle="popover" data-i18n="[data-bs-content]general.options.pauseOnMinVolumeExp" tabindex="0"><i class="fas fa-circle-question"></i></a>
+								<a href="#" class="link-secondary" data-bs-toggle="popover"
+									data-i18n="[data-bs-content]general.options.pauseOnMinVolumeExp" tabindex="0"><i
+										class="fas fa-circle-question"></i></a>
 							</div>
 							<div class="d-flex gap-2">
 								<input type="checkbox" id="recoverVolBoot" name="recoverVolBoot" value="false">
 								<label for="recoverVolBoot" data-i18n="general.options.recoverVolBoot"></label>
-								<a href="#" class="link-secondary" data-bs-toggle="popover" data-i18n="[data-bs-content]general.options.recoverVolBootExp" tabindex="0"><i class="fas fa-circle-question"></i></a>
+								<a href="#" class="link-secondary" data-bs-toggle="popover"
+									data-i18n="[data-bs-content]general.options.recoverVolBootExp" tabindex="0"><i
+										class="fas fa-circle-question"></i></a>
 							</div>
 							<div class="d-flex gap-2">
 								<input type="checkbox" id="playMono" name="playMono" value="false">
 								<label for="playMono" data-i18n="general.options.playMono"></label>
-								<a href="#" class="link-secondary" data-bs-toggle="popover" data-i18n="[data-bs-content]general.options.playMonoExp" tabindex="0"><i class="fas fa-circle-question"></i></a>
+								<a href="#" class="link-secondary" data-bs-toggle="popover"
+									data-i18n="[data-bs-content]general.options.playMonoExp" tabindex="0"><i
+										class="fas fa-circle-question"></i></a>
 							</div>
 							<div class="d-flex gap-2">
 								<input type="checkbox" id="volumeCurve" name="volumeCurve" value="false">
 								<label for="volumeCurve" data-i18n="general.options.volumeCurve"></label>
-								<a href="#" class="link-secondary" data-bs-toggle="popover" data-i18n="[data-bs-content]general.options.volumeCurveExp" tabindex="0"><i class="fas fa-circle-question"></i></a>
+								<a href="#" class="link-secondary" data-bs-toggle="popover"
+									data-i18n="[data-bs-content]general.options.volumeCurveExp" tabindex="0"><i
+										class="fas fa-circle-question"></i></a>
 							</div>	
 						</fieldset>
 					</div>
@@ -1113,82 +1153,140 @@
 						<fieldset>
 							<legend class="w-auto" data-i18n="settingsex.led.title"></legend><br>
 							<label for="led_numIndicator" data-i18n="settingsex.led.numindicator"></label>: <br>
-							<input type="number" class="form-control" id="led_numIndicator" name="led_numIndicator" min="0" max="128"><br>
+								<input type="number" class="form-control" id="led_numIndicator" name="led_numIndicator" 
+									min="0" max="128"><br>
 							<label for="led_numControl" data-i18n="settingsex.led.numcontrol"></label>: <br>
-							<input type="number" class="form-control" id="led_numControl" name="led_numcontrol" min="0" max="128" onChange="listControlColors(Number(this.value), null)"><br>
+								<input type="number" class="form-control" id="led_numControl" name="led_numcontrol"
+									min="0" max="128" onChange="listControlColors(Number(this.value), null)"><br>
 							<div id="controlColorList" class="mb-2 d-none"></div>
 							<div id="controlColorTemp" class="pb-2 d-none">
-								<span data-i18n="settingsex.led.controlled"></span>&nbsp;<span class="ledNumber"></span>:&nbsp;<input type="color" value="#ffffff">
+									<span data-i18n="settingsex.led.controlled"></span>&nbsp;<span
+										class="ledNumber"></span>:&nbsp;<input type="color" value="#ffffff">
 							</div>
 							<label for="led_idleDots" data-i18n="settingsex.led.numidledots"></label>: <br>
-							<input type="number" class="form-control" id="led_idleDots" name="led_idleDots" min="0" max="128"><br>
+								<input type="number" class="form-control" id="led_idleDots" name="led_idleDots" min="0"
+									max="128"><br>
 							<label for="led_hueStart" data-i18n="settingsex.led.huestart"></label>: <br>
 							<div class="hue-slider">
-								<input id="led_hueStart" type="number" data-provide="slider" data-slider-min="-1" data-slider-max="255"
-									min="-1" max="255" class="form-control" name="led_hueStart" data-slider-value="-1" value="-1">
+									<input id="led_hueStart" type="number" data-provide="slider" data-slider-min="-1"
+										data-slider-max="255" min="-1" max="255" class="form-control"
+										name="led_hueStart" data-slider-value="-1" value="-1">
 							</div>							
 							<label for="led_hueEnd" data-i18n="settingsex.led.hueend"></label>: <br>
 							<div class="hue-slider">
-								<input id="led_hueEnd" type="number" data-provide="slider" data-slider-min="-1" data-slider-max="255"
-									min="-1" max="255" class="form-control" name="led_hueEnd" data-slider-value="-1" value="-1">
-							</div>
+									<input id="led_hueEnd" type="number" data-provide="slider" data-slider-min="-1"
+										data-slider-max="255" min="-1" max="255" class="form-control" name="led_hueEnd"
+										data-slider-value="-1" value="-1">
 							<label for="led_hueAtmo" data-i18n="settingsex.led.hueatmo"></label>: <br>
 							<div class="hue-slider">
-								<input id="led_hueAtmo" type="number" data-provide="slider" data-slider-min="-1" data-slider-max="255" min="-1"
-									max="255" class="form-control" name="led_hueAtmo" data-slider-value="-1" value="-1">
+									<input id="led_hueAtmo" type="number" data-provide="slider" data-slider-min="-1" 
+										data-slider-max="255" min="-1" max="255" class="form-control" name="led_hueAtmo"
+										data-slider-value="-1" value="-1">
 							</div>
 							<label for="led_satAtmo" data-i18n="settingsex.led.satatmo"></label>: <br>
-							<div class="slider-container">
-								<input id="led_satAtmo" type="number" data-provide="slider" data-slider-min="-1" data-slider-max="255" min="-1"
-									max="255" class="form-control" name="led_satAtmo" data-slider-value="-1" value="-1">
+							<div class="sat-slider">
+									<input id="led_satAtmo" type="number" data-provide="slider" data-slider-min="-1"
+									data-slider-max="255" min="-1" max="255" class="form-control" name="led_satAtmo"
+									data-slider-value="-1" value="-1">
 							</div>
 							<label for="led_dimStates" data-i18n="settingsex.led.dimmablestates"></label>: <br>
 							<input type="number" class="form-control" id="led_dimStates" name="led_dimStates"><br>
 							<label for="led_offsetStart" data-i18n="settingsex.led.offset"></label>: <br>
-							<input type="number" class="form-control" id="led_offsetStart" name="led_offsetStart"><br>
+								<input type="number" class="form-control" id="led_offsetStart"
+									name="led_offsetStart"><br>
 							<input type="checkbox" id="led_offsetPause" name="led_offsetPause" value="false">&nbsp;
 							<label for="led_offsetPause" data-i18n="settingsex.led.offsetpause"></label><br>
-							<input type="checkbox" id="led_reverseRotation" name="led_reverseRotation" value="false">&nbsp;
-							<label for="led_reverseRotation" data-i18n="settingsex.led.reverserotation"></label><br><br>	
+								<input type="checkbox" id="led_reverseRotation" name="led_reverseRotation"
+									value="false">&nbsp;
+								<label for="led_reverseRotation"
+									data-i18n="settingsex.led.reverserotation"></label><br><br>
 						</fieldset>
 						<fieldset>
 							<legend class="w-auto" data-i18n="settingsex.buttons.title"></legend><br>
 							<legend class="fs-5" data-i18n="settingsex.buttons.button0"></legend>
-							<label for="cmdselect_short_0" data-i18n="settingsex.buttons.short"></label>:&nbsp;<select id="cmdselect_short_0" class="form-control form-select"></select><br>
-							<label for="cmdselect_long_0" data-i18n="settingsex.buttons.long"></label>:&nbsp;<select id="cmdselect_long_0" class="form-control form-select"></select><br><br>	
+								<label for="cmdselect_short_0"
+									data-i18n="settingsex.buttons.short"></label>:&nbsp;<select id="cmdselect_short_0"
+									class="form-control form-select"></select><br>
+								<label for="cmdselect_long_0" data-i18n="settingsex.buttons.long"></label>:&nbsp;<select
+									id="cmdselect_long_0" class="form-control form-select"></select><br><br>
 							<legend class="fs-5" data-i18n="settingsex.buttons.button1"></legend>
-							<label for="cmdselect_short_1" data-i18n="settingsex.buttons.short"></label>:&nbsp;<select id="cmdselect_short_1" class="form-control form-select"></select><br>
-							<label for="cmdselect_long_1" data-i18n="settingsex.buttons.long"></label>:&nbsp;<select id="cmdselect_long_1" class="form-control form-select"></select><br><br>	
+								<label for="cmdselect_short_1"
+									data-i18n="settingsex.buttons.short"></label>:&nbsp;<select id="cmdselect_short_1"
+									class="form-control form-select"></select><br>
+								<label for="cmdselect_long_1" data-i18n="settingsex.buttons.long"></label>:&nbsp;<select
+									id="cmdselect_long_1" class="form-control form-select"></select><br><br>
 							<legend class="fs-5" data-i18n="settingsex.buttons.button2"></legend>
-							<label for="cmdselect_short_2" data-i18n="settingsex.buttons.short"></label>:&nbsp;<select id="cmdselect_short_2" class="form-control form-select"></select><br>
-							<label for="cmdselect_long_2" data-i18n="settingsex.buttons.long"></label>:&nbsp;<select id="cmdselect_long_2" class="form-control form-select"></select><br><br>	
+								<label for="cmdselect_short_2"
+									data-i18n="settingsex.buttons.short"></label>:&nbsp;<select id="cmdselect_short_2"
+									class="form-control form-select"></select><br>
+								<label for="cmdselect_long_2" data-i18n="settingsex.buttons.long"></label>:&nbsp;<select
+									id="cmdselect_long_2" class="form-control form-select"></select><br><br>
 							<legend class="fs-5" data-i18n="settingsex.buttons.button3"></legend>
-							<label for="cmdselect_short_3" data-i18n="settingsex.buttons.short"></label>:&nbsp;<select id="cmdselect_short_3" class="form-control form-select"></select><br>
-							<label for="cmdselect_long_3" data-i18n="settingsex.buttons.long"></label>:&nbsp;<select id="cmdselect_long_3" class="form-control form-select"></select><br><br>	
+								<label for="cmdselect_short_3"
+									data-i18n="settingsex.buttons.short"></label>:&nbsp;<select id="cmdselect_short_3"
+									class="form-control form-select"></select><br>
+								<label for="cmdselect_long_3" data-i18n="settingsex.buttons.long"></label>:&nbsp;<select
+									id="cmdselect_long_3" class="form-control form-select"></select><br><br>
 							<legend class="fs-5" data-i18n="settingsex.buttons.button4"></legend>
-							<label for="cmdselect_short_4" data-i18n="settingsex.buttons.short"></label>:&nbsp;<select id="cmdselect_short_4" class="form-control form-select"></select><br>
-							<label for="cmdselect_long_4" data-i18n="settingsex.buttons.long"></label>:&nbsp;<select id="cmdselect_long_4" class="form-control form-select"></select><br><br>	
+								<label for="cmdselect_short_4"
+									data-i18n="settingsex.buttons.short"></label>:&nbsp;<select id="cmdselect_short_4"
+									class="form-control form-select"></select><br>
+								<label for="cmdselect_long_4" data-i18n="settingsex.buttons.long"></label>:&nbsp;<select
+									id="cmdselect_long_4" class="form-control form-select"></select><br><br>
 							<legend class="fs-5" data-i18n="settingsex.buttons.button5"></legend>
-							<label for="cmdselect_short_5" data-i18n="settingsex.buttons.short"></label>:&nbsp;<select id="cmdselect_short_5" class="form-control form-select"></select><br>
-							<label for="cmdselect_long_5" data-i18n="settingsex.buttons.long"></label>:&nbsp;<select id="cmdselect_long_5" class="form-control form-select"></select><br><br>	
+								<label for="cmdselect_short_5"
+									data-i18n="settingsex.buttons.short"></label>:&nbsp;<select id="cmdselect_short_5"
+									class="form-control form-select"></select><br>
+								<label for="cmdselect_long_5" data-i18n="settingsex.buttons.long"></label>:&nbsp;<select
+									id="cmdselect_long_5" class="form-control form-select"></select><br><br>
 						</fieldset>
 						<fieldset>
 							<legend class="w-auto" data-i18n="settingsex.multibuttons.title"></legend><br>
-							<label for="cmdselect_multi_01" data-i18n="settingsex.multibuttons.01"></label>:&nbsp;<select id="cmdselect_multi_01" class="form-control form-select"></select><br>
-							<label for="cmdselect_multi_02" data-i18n="settingsex.multibuttons.02"></label>:&nbsp;<select id="cmdselect_multi_02" class="form-control form-select"></select><br>
-							<label for="cmdselect_multi_03" data-i18n="settingsex.multibuttons.03"></label>:&nbsp;<select id="cmdselect_multi_03" class="form-control form-select"></select><br>
-							<label for="cmdselect_multi_04" data-i18n="settingsex.multibuttons.04"></label>:&nbsp;<select id="cmdselect_multi_04" class="form-control form-select"></select><br>
-							<label for="cmdselect_multi_05" data-i18n="settingsex.multibuttons.05"></label>:&nbsp;<select id="cmdselect_multi_05" class="form-control form-select"></select><br>
-							<label for="cmdselect_multi_12" data-i18n="settingsex.multibuttons.12"></label>:&nbsp;<select id="cmdselect_multi_12" class="form-control form-select"></select><br>
-							<label for="cmdselect_multi_13" data-i18n="settingsex.multibuttons.13"></label>:&nbsp;<select id="cmdselect_multi_13" class="form-control form-select"></select><br>
-							<label for="cmdselect_multi_14" data-i18n="settingsex.multibuttons.14"></label>:&nbsp;<select id="cmdselect_multi_14" class="form-control form-select"></select><br>
-							<label for="cmdselect_multi_15" data-i18n="settingsex.multibuttons.15"></label>:&nbsp;<select id="cmdselect_multi_15" class="form-control form-select"></select><br>
-							<label for="cmdselect_multi_23" data-i18n="settingsex.multibuttons.23"></label>:&nbsp;<select id="cmdselect_multi_23" class="form-control form-select"></select><br>
-							<label for="cmdselect_multi_24" data-i18n="settingsex.multibuttons.24"></label>:&nbsp;<select id="cmdselect_multi_24" class="form-control form-select"></select><br>
-							<label for="cmdselect_multi_25" data-i18n="settingsex.multibuttons.25"></label>:&nbsp;<select id="cmdselect_multi_25" class="form-control form-select"></select><br>
-							<label for="cmdselect_multi_34" data-i18n="settingsex.multibuttons.34"></label>:&nbsp;<select id="cmdselect_multi_34" class="form-control form-select"></select><br>
-							<label for="cmdselect_multi_35" data-i18n="settingsex.multibuttons.35"></label>:&nbsp;<select id="cmdselect_multi_35" class="form-control form-select"></select><br>
-							<label for="cmdselect_multi_45" data-i18n="settingsex.multibuttons.45"></label>:&nbsp;<select id="cmdselect_multi_45" class="form-control form-select"></select><br>
+								<label for="cmdselect_multi_01"
+									data-i18n="settingsex.multibuttons.01"></label>:&nbsp;<select
+									id="cmdselect_multi_01" class="form-control form-select"></select><br>
+								<label for="cmdselect_multi_02"
+									data-i18n="settingsex.multibuttons.02"></label>:&nbsp;<select
+									id="cmdselect_multi_02" class="form-control form-select"></select><br>
+								<label for="cmdselect_multi_03"
+									data-i18n="settingsex.multibuttons.03"></label>:&nbsp;<select
+									id="cmdselect_multi_03" class="form-control form-select"></select><br>
+								<label for="cmdselect_multi_04"
+									data-i18n="settingsex.multibuttons.04"></label>:&nbsp;<select
+									id="cmdselect_multi_04" class="form-control form-select"></select><br>
+								<label for="cmdselect_multi_05"
+									data-i18n="settingsex.multibuttons.05"></label>:&nbsp;<select
+									id="cmdselect_multi_05" class="form-control form-select"></select><br>
+								<label for="cmdselect_multi_12"
+									data-i18n="settingsex.multibuttons.12"></label>:&nbsp;<select
+									id="cmdselect_multi_12" class="form-control form-select"></select><br>
+								<label for="cmdselect_multi_13"
+									data-i18n="settingsex.multibuttons.13"></label>:&nbsp;<select
+									id="cmdselect_multi_13" class="form-control form-select"></select><br>
+								<label for="cmdselect_multi_14"
+									data-i18n="settingsex.multibuttons.14"></label>:&nbsp;<select
+									id="cmdselect_multi_14" class="form-control form-select"></select><br>
+								<label for="cmdselect_multi_15"
+									data-i18n="settingsex.multibuttons.15"></label>:&nbsp;<select
+									id="cmdselect_multi_15" class="form-control form-select"></select><br>
+								<label for="cmdselect_multi_23"
+									data-i18n="settingsex.multibuttons.23"></label>:&nbsp;<select
+									id="cmdselect_multi_23" class="form-control form-select"></select><br>
+								<label for="cmdselect_multi_24"
+									data-i18n="settingsex.multibuttons.24"></label>:&nbsp;<select
+									id="cmdselect_multi_24" class="form-control form-select"></select><br>
+								<label for="cmdselect_multi_25"
+									data-i18n="settingsex.multibuttons.25"></label>:&nbsp;<select
+									id="cmdselect_multi_25" class="form-control form-select"></select><br>
+								<label for="cmdselect_multi_34"
+									data-i18n="settingsex.multibuttons.34"></label>:&nbsp;<select
+									id="cmdselect_multi_34" class="form-control form-select"></select><br>
+								<label for="cmdselect_multi_35"
+									data-i18n="settingsex.multibuttons.35"></label>:&nbsp;<select
+									id="cmdselect_multi_35" class="form-control form-select"></select><br>
+								<label for="cmdselect_multi_45"
+									data-i18n="settingsex.multibuttons.45"></label>:&nbsp;<select
+									id="cmdselect_multi_45" class="form-control form-select"></select><br>
 						</fieldset>
 					</div>
 					</span>
@@ -1252,11 +1350,14 @@
 				<form id="firmwareUploadForm" method="POST" enctype="multipart/form-data" action="/update">
 					<div class="mb-3">
 						<label for="firmwareUpload" data-i18n="tools.fwupdate.desc"></label><br><br>
-						<input type="file" class="form-control-file btn btn-primary" id="firmwareUpload" name="firmwareUpload" accept=".bin">
+						<input type="file" class="form-control-file btn btn-primary" id="firmwareUpload"
+							name="firmwareUpload" accept=".bin">
 					</div>
 					<div id="firmwareUploadProgress" class="progress upload-progress-bar position-relative">
 						<div class="progress-bar" role="progressbar" aria-labelledby="legendfwupdate"></div>
-						<div class="label d-flex position-absolute flex-column align-self-center text-center w-100 text-nowrap text-light"></div>
+						<div
+							class="label d-flex position-absolute flex-column align-self-center text-center w-100 text-nowrap text-light">
+						</div>
 					</div>
 					<br>
 					<div class="text-center">
@@ -1386,7 +1487,7 @@
 				// (re)initialize all popover buttons to get correct translations in the popovers
 				document.querySelectorAll('[data-bs-toggle="popover"]')
 					.forEach(popoverButton => {
-						new bootstrap.Popover(popoverButton, {html: true, trigger: 'focus'})
+						new bootstrap.Popover(popoverButton, { html: true, trigger: 'focus' })
 					});
 			}
 			$('#navMenu').removeClass("show"); // Hide the menu again
@@ -2022,7 +2123,7 @@
 		function connect() {
 			socket = new WebSocket("ws://" + host + "/ws");
 			socket.onopen = function () {
-				setInterval(ping, 15000);
+				setInterval(ping, 3000);
 				setInterval(getTrackProgress, 1000);
 				// clear old socket messages
 				socket.sendBuffer = [];
@@ -2112,8 +2213,8 @@
 			};
 		}
 
-		function getHexColor(number){
-			return "#"+ ('000000' + ((number)>>>0).toString(16)).slice(-6);
+		function getHexColor(number) {
+			return "#" + ('000000' + ((number) >>> 0).toString(16)).slice(-6);
 		}
 		
 		// list the LED control colors
@@ -2155,6 +2256,9 @@
 				$('#savePlayPosShutdown').prop('checked', genSettings.savePosShutdown);
 				$('#savePlayPosRfidChange').prop('checked', genSettings.savePosRfidChge);
 				$('#playLastRfidOnReboot').prop('checked', genSettings.playLastRfidOnReboot);				
+				$('#pauseIfRfidRemoved').prop('checked', genSettings.pauseIfRfidRemoved);
+				$('#dontAcceptRfidTwice').prop('checked', genSettings.dontAcceptRfidTwice);
+				$('#dontAcceptRfidTwice').prop('disabled', genSettings.pauseIfRfidRemoved);
 				$('#pauseOnMinVolume').prop('checked', genSettings.pauseOnMinVol);
 				$('#recoverVolBoot').prop('checked', genSettings.recoverVolBoot);
 				$('#volumeCurve').prop('checked', genSettings.volumeCurve > 0);
@@ -2462,7 +2566,7 @@
 		})
 		toolsTabObserver.observe(toolsTab, config);
 
-		function ping() {
+		async function ping() {
 			var myObj = {
 				"ping": {
 					ping: 'ping'
@@ -2523,6 +2627,8 @@
 					savePosShutdown: $('#savePlayPosShutdown').prop('checked'),
 					savePosRfidChge: $('#savePlayPosRfidChange').prop('checked'),
 					playLastRfidOnReboot: $('#playLastRfidOnReboot').prop('checked'),
+					pauseIfRfidRemoved: $('#pauseIfRfidRemoved').prop('checked'),
+					dontAcceptRfidTwice: $('#dontAcceptRfidTwice').prop('checked'),
 					pauseOnMinVol: $('#pauseOnMinVolume').prop('checked'),
 					recoverVolBoot: $('#recoverVolBoot').prop('checked'),
 					volumeCurve: $("#volumeCurve").prop('checked') ? 1 : 0
@@ -2588,7 +2694,7 @@
 				}
 			};
 			// fill LED control colors
-			for (var i = 0; i < myObj.led.numControl; i++){ 
+			for (var i = 0; i < myObj.led.numControl; i++) {
 				var element = document.getElementById('controlColor' + i);
 				if (element) {
 					myObj.led.controlColors.push(hexColorToInt(element.value));
@@ -2996,6 +3102,16 @@
 				$('[data-bs-toggle="tooltip"]').tooltip();
 			});
 
+			/* Disable dontAcceptRfidTwice if pauseIfRfidRemoved enabled. */
+			$('#pauseIfRfidRemoved').on('change', function () {
+				const dontAcceptRfidTwice = $('#dontAcceptRfidTwice');
+				if ($(this).prop('checked')) {
+					dontAcceptRfidTwice.prop('checked', false).prop('disabled', true);
+				} else {
+					dontAcceptRfidTwice.prop('disabled', false);
+				}
+			});
+
 			const lightSwitch = $('#lightSwitch');
 			/* Changes the color mode to a new one and saves the value to local storage. */
 			function newColorMode(mode) {
@@ -3059,7 +3175,7 @@
 
 			function addOption(selectelement, value) {
 				const opt = document.createElement("option");
-   				opt.value= value;
+				opt.value = value;
 				opt.setAttribute('data-i18n', "files.rfid.mod.cmd." + value);
 				selectelement.appendChild(opt);
 				return opt; 
