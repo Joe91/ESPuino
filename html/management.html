@@ -111,9 +111,9 @@
 		}
 
 		.coverimage-container {
-			width: 80%;
-			max-width: 400px;
-			height: 15%;
+			object-fit: cover;
+			max-width: 100%;
+			height: 300px;
 			margin: auto;
 			display: block;
 		}
@@ -179,7 +179,7 @@
 		}
 
 		.bs-tooltip-top {
-			width: 30px;
+			width: 40px;
 		}
 
 		input::placeholder {
@@ -701,11 +701,19 @@
 											data-i18n="files.rfid.playmode.mode.12"></option>
 										<option class="option-file-and-folder" value="3"
 											data-i18n="files.rfid.playmode.mode.3"></option>
+										<option class="option-file-and-folder" value="16"
+											data-i18n="files.rfid.playmode.mode.16"></option>
 										<option class="option-file-and-folder" value="4"
 											data-i18n="files.rfid.playmode.mode.4"></option>
 										<option class="option-folder" value="5" data-i18n="files.rfid.playmode.mode.5">
 										</option>
+										<option class="option-folder" value="15"
+											data-i18n="files.rfid.playmode.mode.15">
+										</option>
 										<option class="option-folder" value="6" data-i18n="files.rfid.playmode.mode.6">
+										</option>
+										<option class="option-folder" value="17"
+											data-i18n="files.rfid.playmode.mode.17">
 										</option>
 										<option class="option-folder" value="7" data-i18n="files.rfid.playmode.mode.7">
 										</option>
@@ -804,6 +812,18 @@
 		</div>
 		<!-- ### Tab Bluetooth ### -->
 		<div class="tab-pane main-tab-pane fade mb-4" id="nav-bt" role="tabpanel" aria-labelledby="nav-bt-tab">
+			<div class="container" id="btBackToNormal" style="display: none;">
+				<div class="mb-3 col-md-12">
+					<legend data-i18n="bt.normal.title">Zurück zum Normal-Modus</legend>
+					<div data-i18n="bt.normal.desc">Kehrt zum normalen Modus mit WiFi zurück</div>
+					<br>
+					<div class="text-center">
+						<button type="button" class="btn btn-primary" onclick="setOperationMode(0)"
+							data-i18n="bt.normal.button">Zu Normal-Modus wechseln</button>
+					</div>
+				</div>
+				<hr>
+			</div>
 			<div class="container" id="btConfig">
 				<form action="#btConfig" method="POST" onsubmit="btSettings('btConfig'); return false">
 					<div class="mb-3 col-md-12">
@@ -827,7 +847,7 @@
 					<div data-i18n="bt.source.desc"></div>
 					<br>
 					<div class="text-center">
-						<button type="button" class="btn btn-primary" onclick="sendControl(141)"
+						<button type="button" class="btn btn-primary" onclick="setOperationMode(2)"
 							data-i18n="bt.source.button"></button>
 					</div>
 				</div>
@@ -839,7 +859,7 @@
 					<div data-i18n="bt.sink.desc"></div>
 					<br>
 					<div class="text-center">
-						<button type="button" class="btn btn-primary" onclick="sendControl(140)"
+						<button type="button" class="btn btn-primary" onclick="setOperationMode(1)"
 							data-i18n="bt.sink.button"></button>
 					</div>
 				</div>
@@ -970,7 +990,7 @@
 								<a href="#" class="link-secondary" data-bs-toggle="popover"
 									data-i18n="[data-bs-content]general.options.volumeCurveExp" tabindex="0"><i
 										class="fas fa-circle-question"></i></a>
-							</div>	
+							</div>
 						</fieldset>
 					</div>
 					<div class="col-md-12 mb-4" id="neopixelConfig" data-visible="false">
@@ -1052,7 +1072,7 @@
 									<i class="fas fa-battery-quarter fa-2x .icon-pos"></i>
 								</div>
 								<div class="slider-container-inner">
-									<input data-provide="slider" data-slider-step="0.1" data-slider-min="2.5"
+									<input data-provide="slider" data-slider-step="0.05" data-slider-min="2.5"
 										data-slider-max="5.0" min="2.5" max="5.0" type="text" class="form-control"
 										id="warningLowVoltage" name="warningLowVoltage" data-slider-value="" value=""
 										pattern="^\d{1,2}(\.\d{1,3})?" required>
@@ -1067,7 +1087,7 @@
 									<i class="fas fa-battery-quarter fa-2x .icon-pos"></i>
 								</div>
 								<div class="slider-container-inner">
-									<input data-provide="slider" min="2.5" data-slider-step="0.1" data-slider-min="2.5"
+									<input data-provide="slider" min="2.5" data-slider-step="0.05" data-slider-min="2.5"
 										data-slider-max="5.0" max="5.0" type="text" class="form-control"
 										id="voltageIndicatorLow" name="voltageIndicatorLow" data-slider-value=""
 										value="" pattern="^\d{1,2}(\.\d{1,3})?" required>
@@ -1082,7 +1102,7 @@
 									<i class="fas fa-battery-quarter fa-2x .icon-pos"></i>
 								</div>
 								<div class="slider-container-inner">
-									<input data-provide="slider" data-slider-step="0.1" data-slider-min="2.0"
+									<input data-provide="slider" data-slider-step="0.05" data-slider-min="2.0"
 										data-slider-max="5.0" min="2.0" max="5.0" type="text" class="form-control"
 										id="voltageIndicatorHigh" name="voltageIndicatorHigh" data-slider-value=""
 										value="" pattern="^\d{1,2}(\.\d{1,3})?" required>
@@ -1099,7 +1119,7 @@
 										<i class="fas fa-battery-quarter fa-2x .icon-pos"></i>
 									</div>
 									<div class="slider-container-inner">
-										<input data-provide="slider" data-slider-step="0.1" data-slider-min="2.0"
+										<input data-provide="slider" data-slider-step="0.05" data-slider-min="2.0"
 											data-slider-max="5.0" min="2.0" max="5.0" type="text" class="form-control"
 											id="criticalVoltage" name="criticalVoltage" data-slider-value="" value=""
 											pattern="^\d{1,2}(\.\d{1,3})?" required>
@@ -1136,44 +1156,53 @@
 								<option value="1" data-i18n="general.playlist.strcmp"></option>
 							</select>
 						</fieldset>
+						<fieldset>
+							<label for="playlistRecDepth" data-i18n="[prepend]general.playlist.recDepth">:</label>
+							<select id="playlistRecDepth" name="playlistRecDepth" class="form-control form-select">
+								<option value="4">4</option>
+								<option value="3">3</option>
+								<option value="2">2</option>
+								<option value="1">1</option>
+							</select>
+						</fieldset>
 					</div>
 					<p data-i18n="settingsex.title"></p>
 					<button class="btn btn-primary" type="button" data-bs-toggle="collapse"
 						data-bs-target="#settingsExConfigContainer" aria-expanded="false"
 						aria-controls="settingsExConfigContainer" data-i18n="showhide"></button><br><br>
 					<span class="collapse" id="settingsExConfigContainer">
-					<div class="col-md-12 mb-4" id="rotaryConfig" style="display:none">
-						<fieldset>
-							<legend class="w-auto" data-i18n="settingsex.rotary.title"></legend><br>
-							<input type="checkbox" id="rotaryReverse" name="rotaryReverse" value="false">&nbsp;
-							<label for="rotaryReverse" data-i18n="settingsex.rotary.reverse"></label>
-						</fieldset>
-					</div>
-					<div class="col-md-12 mb-4" id="settingsExConfig">
-						<fieldset>
-							<legend class="w-auto" data-i18n="settingsex.led.title"></legend><br>
-							<label for="led_numIndicator" data-i18n="settingsex.led.numindicator"></label>: <br>
+						<div class="col-md-12 mb-4" id="rotaryConfig" style="display:none">
+							<fieldset>
+								<legend class="w-auto" data-i18n="settingsex.rotary.title"></legend><br>
+								<input type="checkbox" id="rotaryReverse" name="rotaryReverse" value="false">&nbsp;
+								<label for="rotaryReverse" data-i18n="settingsex.rotary.reverse"></label>
+							</fieldset>
+						</div>
+						<div class="col-md-12 mb-4" id="settingsExConfig">
+							<fieldset>
+								<legend class="w-auto" data-i18n="settingsex.led.title"></legend><br>
+								<label for="led_numIndicator" data-i18n="settingsex.led.numindicator"></label>: <br>
 								<input type="number" class="form-control" id="led_numIndicator" name="led_numIndicator"
 									min="0" max="128"><br>
-							<label for="led_numControl" data-i18n="settingsex.led.numcontrol"></label>: <br>
+								<label for="led_numControl" data-i18n="settingsex.led.numcontrol"></label>: <br>
 								<input type="number" class="form-control" id="led_numControl" name="led_numcontrol"
 									min="0" max="128" onChange="listControlColors(Number(this.value), null)"><br>
-							<div id="controlColorList" class="mb-2 d-none"></div>
-							<div id="controlColorTemp" class="pb-2 d-none">
+								<div id="controlColorList" class="mb-2 d-none"></div>
+								<div id="controlColorTemp" class="pb-2 d-none">
 									<span data-i18n="settingsex.led.controlled"></span>&nbsp;<span
 										class="ledNumber"></span>:&nbsp;<input type="color" value="#ffffff">
-							</div>
-							<label for="led_idleDots" data-i18n="settingsex.led.numidledots"></label>: <br>
+								</div>
+								<label for="led_idleDots" data-i18n="settingsex.led.numidledots"></label>: <br>
 								<input type="number" class="form-control" id="led_idleDots" name="led_idleDots" min="0"
 									max="128"><br>
-							<label for="led_hueStart" data-i18n="settingsex.led.huestart"></label>: <br>
-							<div class="hue-slider">
+								<label for="led_hueStart" data-i18n="settingsex.led.huestart"></label>: <br>
+								<div class="hue-slider">
 									<input id="led_hueStart" type="number" data-provide="slider" data-slider-min="-1"
 										data-slider-max="255" min="-1" max="255" class="form-control"
 										name="led_hueStart" data-slider-value="-1" value="-1">
-							</div>							
-							<label for="led_hueEnd" data-i18n="settingsex.led.hueend"></label>: <br>
-							<div class="hue-slider">
+								</div>
+								<label for="led_hueEnd" data-i18n="settingsex.led.hueend"></label>: <br>
+								<div class="hue-slider">
 									<input id="led_hueEnd" type="number" data-provide="slider" data-slider-min="-1"
 										data-slider-max="255" min="-1" max="255" class="form-control" name="led_hueEnd"
 										data-slider-value="-1" value="-1">
@@ -1195,54 +1224,54 @@
 							<label for="led_offsetStart" data-i18n="settingsex.led.offset"></label>: <br>
 								<input type="number" class="form-control" id="led_offsetStart"
 									name="led_offsetStart"><br>
-							<input type="checkbox" id="led_offsetPause" name="led_offsetPause" value="false">&nbsp;
-							<label for="led_offsetPause" data-i18n="settingsex.led.offsetpause"></label><br>
+								<input type="checkbox" id="led_offsetPause" name="led_offsetPause" value="false">&nbsp;
+								<label for="led_offsetPause" data-i18n="settingsex.led.offsetpause"></label><br>
 								<input type="checkbox" id="led_reverseRotation" name="led_reverseRotation"
 									value="false">&nbsp;
 								<label for="led_reverseRotation"
 									data-i18n="settingsex.led.reverserotation"></label><br><br>
-						</fieldset>
-						<fieldset>
-							<legend class="w-auto" data-i18n="settingsex.buttons.title"></legend><br>
-							<legend class="fs-5" data-i18n="settingsex.buttons.button0"></legend>
+							</fieldset>
+							<fieldset>
+								<legend class="w-auto" data-i18n="settingsex.buttons.title"></legend><br>
+								<legend class="fs-5" data-i18n="settingsex.buttons.button0"></legend>
 								<label for="cmdselect_short_0"
 									data-i18n="settingsex.buttons.short"></label>:&nbsp;<select id="cmdselect_short_0"
 									class="form-control form-select"></select><br>
 								<label for="cmdselect_long_0" data-i18n="settingsex.buttons.long"></label>:&nbsp;<select
 									id="cmdselect_long_0" class="form-control form-select"></select><br><br>
-							<legend class="fs-5" data-i18n="settingsex.buttons.button1"></legend>
+								<legend class="fs-5" data-i18n="settingsex.buttons.button1"></legend>
 								<label for="cmdselect_short_1"
 									data-i18n="settingsex.buttons.short"></label>:&nbsp;<select id="cmdselect_short_1"
 									class="form-control form-select"></select><br>
 								<label for="cmdselect_long_1" data-i18n="settingsex.buttons.long"></label>:&nbsp;<select
 									id="cmdselect_long_1" class="form-control form-select"></select><br><br>
-							<legend class="fs-5" data-i18n="settingsex.buttons.button2"></legend>
+								<legend class="fs-5" data-i18n="settingsex.buttons.button2"></legend>
 								<label for="cmdselect_short_2"
 									data-i18n="settingsex.buttons.short"></label>:&nbsp;<select id="cmdselect_short_2"
 									class="form-control form-select"></select><br>
 								<label for="cmdselect_long_2" data-i18n="settingsex.buttons.long"></label>:&nbsp;<select
 									id="cmdselect_long_2" class="form-control form-select"></select><br><br>
-							<legend class="fs-5" data-i18n="settingsex.buttons.button3"></legend>
+								<legend class="fs-5" data-i18n="settingsex.buttons.button3"></legend>
 								<label for="cmdselect_short_3"
 									data-i18n="settingsex.buttons.short"></label>:&nbsp;<select id="cmdselect_short_3"
 									class="form-control form-select"></select><br>
 								<label for="cmdselect_long_3" data-i18n="settingsex.buttons.long"></label>:&nbsp;<select
 									id="cmdselect_long_3" class="form-control form-select"></select><br><br>
-							<legend class="fs-5" data-i18n="settingsex.buttons.button4"></legend>
+								<legend class="fs-5" data-i18n="settingsex.buttons.button4"></legend>
 								<label for="cmdselect_short_4"
 									data-i18n="settingsex.buttons.short"></label>:&nbsp;<select id="cmdselect_short_4"
 									class="form-control form-select"></select><br>
 								<label for="cmdselect_long_4" data-i18n="settingsex.buttons.long"></label>:&nbsp;<select
 									id="cmdselect_long_4" class="form-control form-select"></select><br><br>
-							<legend class="fs-5" data-i18n="settingsex.buttons.button5"></legend>
+								<legend class="fs-5" data-i18n="settingsex.buttons.button5"></legend>
 								<label for="cmdselect_short_5"
 									data-i18n="settingsex.buttons.short"></label>:&nbsp;<select id="cmdselect_short_5"
 									class="form-control form-select"></select><br>
 								<label for="cmdselect_long_5" data-i18n="settingsex.buttons.long"></label>:&nbsp;<select
 									id="cmdselect_long_5" class="form-control form-select"></select><br><br>
-						</fieldset>
-						<fieldset>
-							<legend class="w-auto" data-i18n="settingsex.multibuttons.title"></legend><br>
+							</fieldset>
+							<fieldset>
+								<legend class="w-auto" data-i18n="settingsex.multibuttons.title"></legend><br>
 								<label for="cmdselect_multi_01"
 									data-i18n="settingsex.multibuttons.01"></label>:&nbsp;<select
 									id="cmdselect_multi_01" class="form-control form-select"></select><br>
@@ -1288,8 +1317,8 @@
 								<label for="cmdselect_multi_45"
 									data-i18n="settingsex.multibuttons.45"></label>:&nbsp;<select
 									id="cmdselect_multi_45" class="form-control form-select"></select><br>
-						</fieldset>
-					</div>
+							</fieldset>
+						</div>
 					</span>
 					<div class="text-center">
 						<button type="reset" class="btn btn-warning" data-i18n="reset"
@@ -1970,7 +1999,7 @@
 							opened: true,
 							selected: true
 						},
-						type: 'folder',
+						type: 'sdcard',
 						children: [],
 						data: {
 							path: '/',
@@ -1979,6 +2008,9 @@
 					}
 				},
 				'types': {
+					'sdcard': {
+						'icon': "fa fa-sd-card"
+					},
 					'folder': {
 						'icon': "fa fa-folder"
 					},
@@ -2099,8 +2131,22 @@
 			getData("http://" + host + "/explorer?path=/", function (data) {
 				/* We now have data! */
 				$('#explorerTree').jstree(true).settings.core.data.children = [];
+
+				// If first element has root flag, use it to rename root node and skip it
+				var startIndex = 0;
+				if (data.length > 0 && data[0].root === "sd") {
+					// Rename root node with volume label from backend
+					var tree = $('#explorerTree').jstree(true);
+					tree.settings.core.data.text = data[0].name;
+					var rootNode = tree.get_node(tree.get_container().children('ul').children('li')[0]);
+					if (rootNode) {
+						tree.rename_node(rootNode, data[0].name);
+					}
+					startIndex = 1; // Skip volume label entry, it's not a child
+				}
+
 				sortData(data);
-				for (var i = 0; i < data.length; i++) {
+				for (var i = startIndex; i < data.length; i++) {
 					var newChild = {
 						text: data[i].name,
 						type: getType(data[i]),
@@ -2118,14 +2164,42 @@
 		/* File Explorer functions end */
 		var socket = undefined;
 		var tm;
+		var pingInterval;
+		var getTrackProgressInterval;
 		var volumeSlider = new Slider("#setVolume");
 		document.getElementById('setVolume').remove();
 
-		function connect() {
+		function updateOperationModeIndicator(opmode) {
+			const btStartSource = document.getElementById('btStartSource');
+			const btStartSink = document.getElementById('btStartSink');
+
+			// OPMODE_NORMAL = 0, OPMODE_BLUETOOTH_SINK = 1, OPMODE_BLUETOOTH_SOURCE = 2
+			if (opmode === 0) {
+				// Normal mode - no active panel
+				btStartSource.classList.remove('border', 'border-primary', 'border-3', 'rounded', 'p-3', 'bg-body-secondary');
+				btStartSink.classList.remove('border', 'border-primary', 'border-3', 'rounded', 'p-3', 'bg-body-secondary');
+				// Hide back to normal section
+				document.getElementById('btBackToNormal').style.display = 'none';
+			} else if (opmode === 1) {
+				// Bluetooth Sink - highlight sink panel
+				btStartSource.classList.remove('border', 'border-primary', 'border-3', 'rounded', 'p-3', 'bg-body-secondary');
+				btStartSink.classList.add('border', 'border-primary', 'border-3', 'rounded', 'p-3', 'bg-body-secondary');
+				// Show back to normal section
+				document.getElementById('btBackToNormal').style.display = 'block';
+			} else if (opmode === 2) {
+				// Bluetooth Source - highlight source panel
+				btStartSink.classList.remove('border', 'border-primary', 'border-3', 'rounded', 'p-3', 'bg-body-secondary');
+				btStartSource.classList.add('border', 'border-primary', 'border-3', 'rounded', 'p-3', 'bg-body-secondary');
+				// Show back to normal section
+				document.getElementById('btBackToNormal').style.display = 'block';
+			}
+		} function connect() {
 			socket = new WebSocket("ws://" + host + "/ws");
 			socket.onopen = function () {
-				setInterval(ping, 3000);
-				setInterval(getTrackProgress, 1000);
+				clearInterval(pingInterval);
+				clearInterval(getTrackProgressInterval);
+				pingInterval = setInterval(ping, 3000);
+				setTrackProgressInterval = setInterval(getTrackProgress, 1000);
 				// clear old socket messages
 				socket.sendBuffer = [];
 				socket.send('{"settings":{"settings":"settings"}}'); // request settings
@@ -2170,6 +2244,9 @@
 					if (socketMsg.pong == 'pong') {
 						pong();
 					}
+				}
+				if ("opmode" in socketMsg) {
+					updateOperationModeIndicator(socketMsg.opmode);
 				}
 				if ("volume" in socketMsg) {
 					volumeSlider.setValue(parseInt(socketMsg.volume));
@@ -2217,7 +2294,7 @@
 		function getHexColor(number) {
 			return "#" + ('000000' + ((number) >>> 0).toString(16)).slice(-6);
 		}
-		
+
 		// list the LED control colors
 		function listControlColors(numControlColor, data) {
 			console.log(data);
@@ -2256,7 +2333,7 @@
 				$('#playMono').prop('checked', genSettings.playMono);
 				$('#savePlayPosShutdown').prop('checked', genSettings.savePosShutdown);
 				$('#savePlayPosRfidChange').prop('checked', genSettings.savePosRfidChge);
-				$('#playLastRfidOnReboot').prop('checked', genSettings.playLastRfidOnReboot);				
+				$('#playLastRfidOnReboot').prop('checked', genSettings.playLastRfidOnReboot);
 				$('#pauseIfRfidRemoved').prop('checked', genSettings.pauseIfRfidRemoved);
 				$('#dontAcceptRfidTwice').prop('checked', genSettings.dontAcceptRfidTwice);
 				$('#dontAcceptRfidTwice').prop('disabled', genSettings.pauseIfRfidRemoved);
@@ -2317,6 +2394,7 @@
 			let playlistSettings = settings.playlist;
 			if (playlistSettings) {
 				$("#playlistSortMode").val(playlistSettings.sortMode).change();
+				$("#playlistRecDepth").val(playlistSettings.recDepth).change();
 			}
 			// rotary encoder
 			let rotarySettings = settings.rotary;
@@ -2401,6 +2479,12 @@
 				document.getElementById('nav-bt-tab').setAttribute('data-visible', true);
 				document.getElementById('btDeviceName').value = btSettings.deviceName;
 				document.getElementById('btPinCode').value = btSettings.pinCode;
+				// make BT commands visible in button command selects
+				document.querySelectorAll('[id*=cmdselect_], #modId').forEach(select => {
+					select.querySelectorAll('option[value="140"], option[value="141"], option[value="142"]').forEach(option => {
+						option.style.display = '';
+					});
+				});
 			}
 		}
 		async function resetSettings() {
@@ -2613,7 +2697,7 @@
 		}
 
 		function hexColorToInt(input) {
-  			return parseInt(input.replace(/^#([\da-f])([\da-f])([\da-f])$/i, '#$1$1$2$2$3$3').substring(1), 16);
+			return parseInt(input.replace(/^#([\da-f])([\da-f])([\da-f])$/i, '#$1$1$2$2$3$3').substring(1), 16);
 		};
 
 		function genSettings(clickedId) {
@@ -2659,7 +2743,8 @@
 					voltageCheckInterval: Number($('#voltageCheckInterval').val())
 				},
 				"playlist": {
-					sortMode: Number($('#playlistSortMode').val())
+					sortMode: Number($('#playlistSortMode').val()),
+					recDepth: Number($('#playlistRecDepth').val()),
 				},
 				"buttons": {
 					short0: Number(document.getElementById("cmdselect_short_0").value),
@@ -2689,7 +2774,7 @@
 					multi34: Number(document.getElementById("cmdselect_multi_34").value),
 					multi35: Number(document.getElementById("cmdselect_multi_35").value),
 					multi45: Number(document.getElementById("cmdselect_multi_45").value),
-				},			
+				},
 				"rotary": {
 					reverse: $('#rotaryReverse').prop('checked')
 				}
@@ -2699,7 +2784,7 @@
 				var element = document.getElementById('controlColor' + i);
 				if (element) {
 					myObj.led.controlColors.push(hexColorToInt(element.value));
-				} 
+				}
 			}
 			console.log(myObj);
 			var myJSON = JSON.stringify(myObj);
@@ -2858,6 +2943,27 @@
 			};
 			var myJSON = JSON.stringify(myObj);
 			socket.send(myJSON);
+		}
+
+		function setOperationMode(mode) {
+			console.log("set operation mode: " + mode);
+			// Show modal immediately before sending request
+			tryRedirect();
+			$('.modal-title').text(i18next.t("restart"));
+			$('.modal-body').html(i18next.t("restartinfo"));
+			$(".modal-body").removeAttr("style");
+			new bootstrap.Modal(document.getElementById('modalInfo')).toggle();
+
+			// Send mode change request (device will restart immediately)
+			fetch('/mode', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ mode: mode })
+			}).catch(error => {
+				console.log('Device restarting, connection lost (expected):', error);
+			});
 		}
 
 		function executeCommand() {
@@ -3179,7 +3285,7 @@
 				opt.value = value;
 				opt.setAttribute('data-i18n', "files.rfid.mod.cmd." + value);
 				selectelement.appendChild(opt);
-				return opt; 
+				return opt;
 			}
 
 			/* Replaces a dom element and copies id and classes from the original */
@@ -3195,9 +3301,13 @@
 			const cmdElem = document.createElement('select');
 			const cmdNothing = addOption(cmdElem, 0);
 			cmdNothing.setAttribute('data-i18n', "settingsex.buttons.noaction");
-			const cmds = [170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 199, 150, 151, 152, 153, 120, 100, 101, 102, 103, 104, 105, 106, 107, 110, 111];
+			const cmds = [170, 171, 172, 173, 174, 184, 185, 175, 176, 177, 178, 179, 180, 181, 182, 183, 199, 130, 140, 141, 142, 150, 151, 152, 153, 120, 100, 101, 102, 103, 104, 105, 106, 107, 110, 111, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250];
 			for (const cmd of cmds) {
-				addOption(cmdElem, cmd);
+				const opt = addOption(cmdElem, cmd);
+				if ([140, 141, 142].includes(cmd)) {
+					// initially hide bluetooth commands, will be shown when bt is enabled
+					opt.style.display = 'none';
+				}
 			}
 
 			/* fill settingsex button commands */
@@ -3205,9 +3315,12 @@
 
 			/* The <select /> that houses all commands for the modification selectors */
 			const modElem = document.createElement('select');
-			const mods = [100, 179, 101, 102, 103, 104, 105, 106, 110, 111, 120, 130, 140, 141, 142, 150, 151, 152, 153, 0, 170, 171, 172, 173, 174, 180, 181];
+			const mods = [100, 179, 101, 102, 103, 104, 105, 106, 110, 111, 120, 130, 140, 141, 142, 150, 151, 152, 0, 170, 171, 172, 173, 174, 184, 185, 180, 181, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250];
 			for (const mod of mods) {
-				addOption(modElem, mod);
+				const opt = addOption(modElem, mod);
+				if ([140, 141, 142].includes(mod)) {
+					opt.style.display = 'none';
+				}
 			}
 
 			/* fill command selectors at the control page and the rfid assignment */
