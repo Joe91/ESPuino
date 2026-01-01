@@ -12,23 +12,24 @@
 
 	//################## HARDWARE-PLATFORM ###############################
 	/* Make sure to also edit the configfile, that is specific for your platform.
-	If in doubts (your develboard is not listed) use HAL 1
-	1: Wemos Lolin32                        => settings-lolin32.h
-	2: ESP32-A1S Audiokit                   => settings-espa1s.h
-	3: Wemos Lolin D32                      => settings-lolin_D32.h
-	4: Wemos Lolin D32 pro                  => settings-lolin_D32_pro.h
-	5: Lilygo T8 (V1.7)                     => settings-ttgo_t8.h
-	6: ESPuino complete                     => settings-complete.h
-	7: Lolin D32 pro SDMMC Port-Expander    => settings-lolin_d32_pro_sdmmc_pe.h
-	8: AZDelivery ESP32 NodeMCU             => settings-azdelivery_sdmmc.h
-	9: Lolin D32 SDMMC Port-Expander        => settings-lolin_d32_sdmmc_pe.h
-	99: custom                              => settings-custom.h
-	more to come...
+	If in doubts (your board is not listed) use HAL 7
+
+	!!!Only ESP32 with PSRAM are supported!!!
+
+	HAL 4: Wemos Lolin D32 pro                  => settings-lolin_D32_pro.h
+	HAL 5: Lilygo T8 (V1.7)                     => settings-ttgo_t8.h
+	HAL 6: ESPuino complete                     => settings-complete.h
+	HAL 7: Lolin D32 pro SDMMC Port-Expander    => settings-lolin_d32_pro_sdmmc_pe.h
+	HAL 99: custom                              => settings-custom.h
 	*/
-	#ifndef HAL             // Will be set by platformio.ini. If using Arduino-IDE you have to set HAL according your needs!
-		#define HAL 1       // HAL 1 = LoLin32, 2 = ESP32-A1S-AudioKit, 3 = Lolin D32, 4 = Lolin D32 pro; ... 99 = custom
+	#ifndef HAL             // Will be set by platformio.ini. There's no need to adjust this manually right here
+		#define HAL 7
 	#endif
 
+	// Enforce port expander for some HALs because it's mandatory for those and users constantly forget it. Endless story...
+	#if (HAL == 6) || (HAL == 7)
+		#define PORT_EXPANDER_ENABLE 
+	#endif
 
 	//########################## MODULES #################################
 	#define PORT_EXPANDER_ENABLE          // When enabled, buttons can be connected via port-expander PCA9555 (https://forum.espuino.de/t/einsatz-des-port-expanders-pca9555/306)
@@ -47,15 +48,12 @@
 	//#define MEASURE_BATTERY_MAX17055      // Enables battery-measurement via external fuel gauge (MAX17055)
 	//#define SHUTDOWN_ON_BAT_CRITICAL      // Whether to turn off on critical battery-level (only used if MEASURE_BATTERY_XXX is active)
 	//#define PLAY_LAST_RFID_AFTER_REBOOT   // When restarting ESPuino, the last RFID that was active before, is recalled and played
-	//#define USE_LAST_VOLUME_AFTER_REBOOT  // Remembers the volume used at last shutdown after reboot
 	#define USEROTARY_ENABLE                // If rotary-encoder is used (don't forget to review WAKEUP_BUTTON if you disable this feature!)
-	#define BLUETOOTH_ENABLE                // If enabled and bluetooth-mode is active, you can stream to your ESPuino or to a headset via bluetooth (a2dp-sink & a2dp-source). Note: This feature consumes a lot of resources and the available flash/ram might not be sufficient. 
+	#define BLUETOOTH_ENABLE                // If enabled and bluetooth-mode is active, you can stream to your ESPuino or to a headset via bluetooth (a2dp-sink & a2dp-source). Note: This feature consumes a lot of resources and the available flash/ram might not be sufficient.
 	//#define IR_CONTROL_ENABLE             // Enables remote control (https://forum.espuino.de/t/neues-feature-fernsteuerung-per-infrarot-fernbedienung/265)
 	//#define PAUSE_WHEN_RFID_REMOVED       // Playback starts when card is applied and pauses automatically, when card is removed (https://forum.espuino.de/t/neues-feature-pausieren-wenn-rfid-karte-entfernt-wurde/541)
 	//#define PAUSE_ON_MIN_VOLUME           // When playback is active and volume is changed to zero, playback is paused automatically. Playback is continued if volume reaches 1. (https://forum.espuino.de/t/neues-feature-pausieren-wenn-rfid-karte-entfernt-wurde/541)
 	#define DONT_ACCEPT_SAME_RFID_TWICE   // RFID-reader doesn't accept the same RFID-tag twice in a row (unless it's a modification-card or RFID-tag is unknown in NVS). Flag will be ignored silently if PAUSE_WHEN_RFID_REMOVED is active. (https://forum.espuino.de/t/neues-feature-dont-accept-same-rfid-twice/1247)
-	//#define SAVE_PLAYPOS_BEFORE_SHUTDOWN  // When playback is active and mode audiobook was selected, last play-position is saved automatically when shutdown is initiated
-	//#define SAVE_PLAYPOS_WHEN_RFID_CHANGE // When playback is active and mode audiobook was selected, last play-position is saved automatically for old playlist when new RFID-tag is applied
 	//#define HALLEFFECT_SENSOR_ENABLE      // Support for hallsensor. For fine-tuning please adjust HallEffectSensor.h Please note: only user-support provided (https://forum.espuino.de/t/magnetische-hockey-tags/1449/35)
 	#define VOLUMECURVE 0 					// 0=square, 1=logarithmic (1 is more flatten at lower volume)
 
@@ -67,7 +65,7 @@
 	//################## select SD card mode #############################
 	#define SD_MMC_1BIT_MODE              // run SD card in SD-MMC 1Bit mode (using GPIOs 15 + 14 + 2 is mandatory!)
 	//#define SINGLE_SPI_ENABLE             // If only one SPI-instance should be used instead of two (not yet working!)
-	//#define NO_SDCARD                     // enable to start without any SD card, e.g. for a webplayer only. SD card Settings above will be ignored 
+	//#define NO_SDCARD                     // enable to start without any SD card, e.g. for a webplayer only. SD card Settings above will be ignored
 
 
 	//################## select RFID reader ##############################
@@ -169,7 +167,7 @@
 	// Buttons (better leave unchanged if in doubts :-))
 	constexpr uint8_t buttonDebounceInterval = 50;                // Interval in ms to software-debounce buttons
 	constexpr uint16_t intervalToLongPress = 900;                 // Interval in ms to distinguish between short and long press of buttons
-	
+
 	// Buttons active state: Default 0 for active LOW, 1 for active HIGH e.g. for TTP223 Capacitive Touch Switch Button (FinnBox)
 	#define BUTTON_0_ACTIVE_STATE 0
 	#define BUTTON_1_ACTIVE_STATE 0
@@ -177,7 +175,7 @@
 	#define BUTTON_3_ACTIVE_STATE 0
 	#define BUTTON_4_ACTIVE_STATE 0
 	#define BUTTON_5_ACTIVE_STATE 0
-	
+
 	//#define CONTROLS_LOCKED_BY_DEFAULT			// If set the controls are locked at boot
 	#define INCLUDE_ROTARY_IN_CONTROLS_LOCK			// If set the rotary encoder is locked if controls are locked
 
@@ -197,7 +195,7 @@
 	// see list of valid timezones: https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
 	// example for Europe/Berlin:	"CET-1CEST,M3.5.0,M10.5.0/3"
 	// example for America/Toronto:	"EST5EDT,M3.2.0,M11.1.0"
-	constexpr const char timeZone[] = "CET-1CEST,M3.5.0,M10.5.0/3"; // Europe/Berlin 
+	constexpr const char timeZone[] = "CET-1CEST,M3.5.0,M10.5.0/3"; // Europe/Berlin
 
 	// ESPuino will create a WiFi if joing existing WiFi was not possible. Name and password can be configured here.
 	constexpr const char accessPointNetworkSSID[] = "ESPuino";     // Access-point's SSID

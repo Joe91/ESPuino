@@ -7,6 +7,7 @@
 #include "AudioPlayer.h"
 #include "Led.h"
 #include "Log.h"
+#include "MemX.h"
 #include "Mqtt.h"
 #include "Port.h"
 #include "Power.h"
@@ -38,10 +39,19 @@ volatile uint8_t System_OperationMode;
 void System_SleepHandler(void);
 void System_DeepSleepManager(void);
 
+// Init only NVS required for LPCD
+void System_Init_LPCD(void) {
+#ifdef PN5180_ENABLE_LPCD
+	gPrefsRfid.begin(prefsRfidNamespace);
+#endif
+}
+
 void System_Init(void) {
 	srand(esp_random());
 
+#ifndef PN5180_ENABLE_LPCD
 	gPrefsRfid.begin(prefsRfidNamespace);
+#endif
 	gPrefsSettings.begin(prefsSettingsNamespace);
 
 	// Get maximum inactivity-time from NVS
@@ -96,7 +106,7 @@ bool System_SetSleepTimer(uint8_t minutes) {
 	}
 
 #ifdef MQTT_ENABLE
-	publishMqtt(topicSleepTimerState, System_GetSleepTimer(), false);
+	publishMqtt(topicSleepTimerState, static_cast<uint32_t>(System_GetSleepTimer()), false);
 #endif
 
 	return sleepTimerEnabled;
@@ -148,6 +158,7 @@ void System_SetOperationMode(uint8_t opMode) {
 	uint8_t currentOperationMode = gPrefsSettings.getUChar("operationMode", OPMODE_NORMAL);
 	if (currentOperationMode != opMode) {
 		if (gPrefsSettings.putUChar("operationMode", opMode)) {
+			Log_Println(restartAfterOperationModeChange, LOGLEVEL_INFO);
 			ESP.restart();
 		}
 	}
@@ -193,9 +204,9 @@ void System_PreparePowerDown(void) {
 	Mqtt_Exit();
 	Led_Exit();
 
-#ifdef USE_LAST_VOLUME_AFTER_REBOOT
-	gPrefsSettings.putUInt("previousVolume", AudioPlayer_GetCurrentVolume());
-#endif
+	if (gPrefsSettings.getBool("recoverVolBoot", false)) {
+		gPrefsSettings.putUInt("previousVolume", AudioPlayer_GetCurrentVolume());
+	}
 	SdCard_Exit();
 
 	Serial.flush();
@@ -266,7 +277,7 @@ void System_ShowWakeUpReason() {
 
 void System_esp_print_tasks(void) {
 #ifdef CONFIG_FREERTOS_USE_TRACE_FACILITY
-	char *pbuffer = (char *) calloc(2048, 1);
+	char *pbuffer = x_calloc(2048, 1);
 	vTaskGetRunTimeStats(pbuffer);
 	Serial.printf("=====\n%s\n=====", pbuffer);
 	free(pbuffer);

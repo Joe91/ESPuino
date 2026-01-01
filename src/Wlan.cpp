@@ -6,6 +6,7 @@
 #include "AudioPlayer.h"
 #include "Log.h"
 #include "MemX.h"
+#include "Mqtt.h"
 #include "RotaryEncoder.h"
 #include "System.h"
 #include "Web.h"
@@ -232,7 +233,7 @@ static void migrateFromVersion2() {
 		}
 
 		// clean up old nvs entries
-		delete settings;
+		std::destroy_at(settings);
 		gPrefsSettings.remove(nvsKey);
 	}
 }
@@ -254,11 +255,6 @@ void Wlan_Init(void) {
 	migrateFromVersion1();
 	migrateFromVersion2();
 
-	if (OPMODE_NORMAL != System_GetOperationMode()) {
-		wifiState = WIFI_STATE_END;
-		return;
-	}
-
 	// dump all network settings
 	iterateNvsEntries([](const char *, const WiFiSettings &s) {
 		char buffer[128]; // maximum buffer needed when we have static IP
@@ -271,6 +267,12 @@ void Wlan_Init(void) {
 			ipMode = buffer;
 		}
 		Log_Printf(LOGLEVEL_DEBUG, "SSID: %s, Password: %s, %s", s.ssid.c_str(), (s.password.length()) ? "yes" : "no", ipMode);
+
+		if (gPrefsSettings.isKey("LAST_SSID") == false) {
+			gPrefsSettings.putString("LAST_SSID", s.ssid);
+			Log_Println("Warn: using saved SSID as LAST_SSID", LOGLEVEL_NOTICE);
+		}
+
 		return true;
 	});
 
@@ -442,9 +444,10 @@ void ntpTimeAvailable(struct timeval *t) {
 		Log_Println(ntpFailed, LOGLEVEL_NOTICE);
 		return;
 	}
-	static char timeStringBuff[255];
-	snprintf(timeStringBuff, sizeof(timeStringBuff), ntpGotTime, timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year + 1900, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+	char *timeStringBuff = (char *) x_malloc(255);
+	snprintf(timeStringBuff, sizeof(char) * 255, ntpGotTime, timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year + 1900, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
 	Log_Println(timeStringBuff, LOGLEVEL_NOTICE);
+	free(timeStringBuff);
 	// set ESPuino's very first start date
 	if (!gPrefsSettings.isKey("firstStart")) {
 		gPrefsSettings.putULong("firstStart", t->tv_sec);
@@ -489,14 +492,20 @@ void handleWifiStateConnectionSuccess() {
 	delete dnsServer;
 	dnsServer = nullptr;
 
+	bool playLastRfidAfterReboot;
 #ifdef PLAY_LAST_RFID_AFTER_REBOOT
-	if (gPlayLastRfIdWhenWiFiConnected && gTriedToConnectToHost) {
+	playLastRfidAfterReboot = gPrefsSettings.getBool("playLastOnBoot", true);
+#else
+	playLastRfidAfterReboot = gPrefsSettings.getBool("playLastOnBoot", false);
+#endif
+
+	if (playLastRfidAfterReboot && gPlayLastRfIdWhenWiFiConnected && gTriedToConnectToHost) {
 		gPlayLastRfIdWhenWiFiConnected = false;
 		recoverLastRfidPlayedFromNvs(true);
 	}
-#endif
 
 	wifiState = WIFI_STATE_CONNECTED;
+	Mqtt_OnWifiConnected();
 }
 
 unsigned long lastRssiTimestamp;
@@ -527,6 +536,9 @@ void handleWifiStateConnected() {
 			Log_Printf(LOGLEVEL_DEBUG, "RSSI: %d dBm", Wlan_GetRssi());
 			lastRssiValue = Wlan_GetRssi();
 		}
+#ifdef MQTT_ENABLE
+		publishMqtt(topicWiFiRssiState, static_cast<int32_t>(Wlan_GetRssi()), false);
+#endif
 	}
 }
 
@@ -761,7 +773,7 @@ void writeWifiStatusToNVS(bool wifiStatus) {
 	} else {
 		Log_Println(wifiDisabledMsg, LOGLEVEL_NOTICE);
 		if (gPlayProperties.isWebstream) {
-			AudioPlayer_TrackControlToQueueSender(STOP);
+			AudioPlayer_SetTrackControl(STOP);
 		}
 	}
 

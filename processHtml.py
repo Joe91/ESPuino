@@ -20,12 +20,20 @@ except ImportError:
 from flask_minify.parsers import Parser
 import json
 
+# Ensure minify_html is installed in version necessary
 try:
-    import minify_html
+    from importlib.metadata import version, PackageNotFoundError
 except ImportError:
-  print("Trying to Install required module: minify_html\nIf this failes, please execute \"pip install minify_html\" manually.")
-  env.Execute("$PYTHONEXE -m pip install minify_html")
-import minify_html
+    from importlib.metadata import version, PackageNotFoundError
+
+try:
+    if version("minify_html") != "0.15.0":
+        raise PackageNotFoundError
+    import minify_html
+except (ImportError, PackageNotFoundError):
+    print("Trying to Install required module: minify_html\nIf this failes, please execute \"pip install minify_html==0.15.0\" manually.")
+    env.Execute("$PYTHONEXE -m pip install minify_html==0.15.0")
+    import minify_html
 
 OUTPUT_DIR = (
     Path(env.subst("$BUILD_DIR")) / "generated"
