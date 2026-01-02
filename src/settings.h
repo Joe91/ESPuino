@@ -131,7 +131,7 @@
 	#define BUTTON_4_LONG     CMD_NOTHING
 	#define BUTTON_5_LONG     CMD_NOTHING
 
-    #define BUTTON_MULTI_01   CMD_TELL_IP_ADDRESS // (back + next)
+    #define BUTTON_MULTI_01   CMD_TOGGLE_AMBIENT_LIGHT // (back + next)
     #define BUTTON_MULTI_02   CMD_NOTHING // (next + play)
     #define BUTTON_MULTI_03   CMD_TOGGLE_BLUETOOTH_SINK_MODE // (power + next)
 	#define BUTTON_MULTI_04   CMD_NOTHING

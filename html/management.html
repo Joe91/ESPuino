@@ -814,8 +814,8 @@
 		<div class="tab-pane main-tab-pane fade mb-4" id="nav-bt" role="tabpanel" aria-labelledby="nav-bt-tab">
 			<div class="container" id="btBackToNormal" style="display: none;">
 				<div class="mb-3 col-md-12">
-					<legend data-i18n="bt.normal.title">Zurück zum Normal-Modus</legend>
-					<div data-i18n="bt.normal.desc">Kehrt zum normalen Modus mit WiFi zurück</div>
+					<legend data-i18n="bt.normal.title">ZurÃ¼ck zum Normal-Modus</legend>
+					<div data-i18n="bt.normal.desc">Kehrt zum normalen Modus mit WiFi zurÃ¼ck</div>
 					<br>
 					<div class="text-center">
 						<button type="button" class="btn btn-primary" onclick="setOperationMode(0)"
@@ -1032,9 +1032,9 @@
 									<i class="far fa-sun fa-2x .icon-pos"></i>
 								</div>
 								<div class="slider-container-inner">
-									<input data-provide="slider" type="number" data-slider-min="0" data-slider-max="255" 
-										min="0" max="255" class="form-control" id="atmoBrightness"
-										name="atmoBrightness" data-slider-value="" value="" required>
+									<input data-provide="slider" type="number" data-slider-min="0" data-slider-max="255"
+										min="0" max="255" class="form-control" id="atmoBrightness" name="atmoBrightness"
+										data-slider-value="" value="" required>
 								</div>
 								<div class="float-end" style="padding-left: 10px">
 									<i class="fas fa-sun fa-2x .icon-pos"></i>
@@ -1206,22 +1206,22 @@
 									<input id="led_hueEnd" type="number" data-provide="slider" data-slider-min="-1"
 										data-slider-max="255" min="-1" max="255" class="form-control" name="led_hueEnd"
 										data-slider-value="-1" value="-1">
-							</div>
-							<label for="led_hueAtmo" data-i18n="settingsex.led.hueatmo"></label>: <br>
-							<div class="hue-slider">
-									<input id="led_hueAtmo" type="number" data-provide="slider" data-slider-min="-1" 
+								</div>
+								<label for="led_hueAtmo" data-i18n="settingsex.led.hueatmo"></label>: <br>
+								<div class="hue-slider">
+									<input id="led_hueAtmo" type="number" data-provide="slider" data-slider-min="-1"
 										data-slider-max="255" min="-1" max="255" class="form-control" name="led_hueAtmo"
 										data-slider-value="-1" value="-1">
-							</div>
-							<label for="led_satAtmo" data-i18n="settingsex.led.satatmo"></label>: <br>
-							<div class="sat-slider">
+								</div>
+								<label for="led_satAtmo" data-i18n="settingsex.led.satatmo"></label>: <br>
+								<div class="sat-slider">
 									<input id="led_satAtmo" type="number" data-provide="slider" data-slider-min="-1"
 										data-slider-max="255" min="-1" max="255" class="form-control" name="led_satAtmo"
 										data-slider-value="-1" value="-1">
-							</div>
-							<label for="led_dimStates" data-i18n="settingsex.led.dimmablestates"></label>: <br>
-							<input type="number" class="form-control" id="led_dimStates" name="led_dimStates"><br>
-							<label for="led_offsetStart" data-i18n="settingsex.led.offset"></label>: <br>
+								</div>
+								<label for="led_dimStates" data-i18n="settingsex.led.dimmablestates"></label>: <br>
+								<input type="number" class="form-control" id="led_dimStates" name="led_dimStates"><br>
+								<label for="led_offsetStart" data-i18n="settingsex.led.offset"></label>: <br>
 								<input type="number" class="form-control" id="led_offsetStart"
 									name="led_offsetStart"><br>
 								<input type="checkbox" id="led_offsetPause" name="led_offsetPause" value="false">&nbsp;
@@ -2388,7 +2388,7 @@
 				document.getElementById('led_dimStates').value = ledSettings.dimStates;
 				$('#led_offsetPause').prop('checked', ledSettings.offsetPause);
 				$('#led_reverseRotation').prop('checked', ledSettings.reverseRot);
-				document.getElementById('led_offsetStart').value = ledSettings.offsetStart;				
+				document.getElementById('led_offsetStart').value = ledSettings.offsetStart;
 			}
 			// playlist
 			let playlistSettings = settings.playlist;
@@ -3301,7 +3301,7 @@
 			const cmdElem = document.createElement('select');
 			const cmdNothing = addOption(cmdElem, 0);
 			cmdNothing.setAttribute('data-i18n', "settingsex.buttons.noaction");
-			const cmds = [170, 171, 172, 173, 174, 184, 185, 175, 176, 177, 178, 179, 180, 181, 182, 183, 199, 130, 140, 141, 142, 150, 151, 152, 120, 100, 101, 102, 103, 104, 105, 106, 107, 110, 111, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250];
+			const cmds = [170, 171, 172, 173, 174, 184, 185, 175, 176, 177, 178, 179, 180, 181, 182, 183, 199, 130, 140, 141, 142, 150, 151, 152, 153, 120, 100, 101, 102, 103, 104, 105, 106, 107, 110, 111, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250];
 			for (const cmd of cmds) {
 				const opt = addOption(cmdElem, cmd);
 				if ([140, 141, 142].includes(cmd)) {
@@ -3315,7 +3315,7 @@
 
 			/* The <select /> that houses all commands for the modification selectors */
 			const modElem = document.createElement('select');
-			const mods = [100, 179, 101, 102, 103, 104, 105, 106, 110, 111, 120, 130, 140, 141, 142, 150, 151, 152, 0, 170, 171, 172, 173, 174, 184, 185, 180, 181, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250];
+			const mods = [100, 179, 101, 102, 103, 104, 105, 106, 110, 111, 120, 130, 140, 141, 142, 150, 151, 152, 153, 0, 170, 171, 172, 173, 174, 184, 185, 180, 181, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250];
 			for (const mod of mods) {
 				const opt = addOption(modElem, mod);
 				if ([140, 141, 142].includes(mod)) {

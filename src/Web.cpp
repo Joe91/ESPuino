@@ -876,7 +876,7 @@ bool JSONToSettings(JsonObject doc) {
 		snprintf(rfidString, sizeof(rfidString) / sizeof(rfidString[0]), "%s%s%s0%s%u%s0", stringDelimiter, _fileOrUrlAscii, stringDelimiter, stringDelimiter, _playMode, stringDelimiter);
 		gPrefsRfid.putString(_rfidIdAssinId, rfidString);
 		if (gPlayProperties.dontAcceptRfidTwice) {
-		Rfid_ResetOldRfid(); // Set old rfid-id to crap in order to allow to re-apply a new assigned rfid-tag exactly once
+			Rfid_ResetOldRfid(); // Set old rfid-id to crap in order to allow to re-apply a new assigned rfid-tag exactly once
 		}
 
 		String s = gPrefsRfid.getString(_rfidIdAssinId, "-1");
