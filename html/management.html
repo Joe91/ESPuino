@@ -758,6 +758,12 @@
 						<label for="mqttClientId" data-i18n="[prepend]mqtt.clientId.title">:</label>
 						<input type="text" class="form-control" id="mqttClientId" minlength="7" maxlength="0"
 							data-i18n="[placeholder]mqtt.clientId.placeholder" name="mqttClientId" value="">
+						<label for="mqttBaseTopic" data-i18n="[prepend]mqtt.baseTopic.title">:</label>
+						<input type="text" class="form-control" id="mqttBaseTopic" maxlength="0"
+							data-i18n="[placeholder]mqtt.baseTopic.placeholder" name="mqttBaseTopic" value="">
+						<label for="mqttDeviceId" data-i18n="[prepend]mqtt.deviceId.title">:</label>
+						<input type="text" class="form-control" id="mqttDeviceId" maxlength="0"
+							data-i18n="[placeholder]mqtt.deviceId.placeholder" name="mqttDeviceId" value="">
 						<label for="mqttServer" data-i18n="[prepend]mqtt.server.title">:</label>
 						<input type="text" class="form-control" id="mqttServer" minlength="7" maxlength="0"
 							data-i18n="[placeholder]mqtt.server.placeholder" name="mqttServer" value="">
@@ -1946,8 +1952,14 @@
 			var node = ref.get_node(nodeId);
 			getData("http://" + host + "/explorer?path=" + encodeURIComponent(node.data.path), function (data) {
 				/* We now have data! */
+				// If root node and first element has root flag, skip it (volume label)
+				var startIndex = 0;
+				if (node.data.path === "/" && data.length > 0 && data[0].root === "sd") {
+					startIndex = 1;
+				}
 				deleteChildrenNodes(nodeId);
-				addFileDirectory(nodeId, data);
+				// Pass only actual children (skip volume label if present)
+				addFileDirectory(nodeId, data.slice(startIndex));
 				ref.open_node(nodeId);
 			});
 		}
@@ -2132,8 +2144,7 @@
 				/* We now have data! */
 				$('#explorerTree').jstree(true).settings.core.data.children = [];
 
-				// If first element has root flag, use it to rename root node and skip it
-				var startIndex = 0;
+				// If first element has root flag, use it to rename root node and remove it from data
 				if (data.length > 0 && data[0].root === "sd") {
 					// Rename root node with volume label from backend
 					var tree = $('#explorerTree').jstree(true);
@@ -2142,11 +2153,12 @@
 					if (rootNode) {
 						tree.rename_node(rootNode, data[0].name);
 					}
-					startIndex = 1; // Skip volume label entry, it's not a child
+					// Remove volume label from data array before sorting
+					data = data.slice(1);
 				}
 
 				sortData(data);
-				for (var i = startIndex; i < data.length; i++) {
+				for (var i = 0; i < data.length; i++) {
 					var newChild = {
 						text: data[i].name,
 						type: getType(data[i]),
@@ -2462,6 +2474,10 @@
 			if (mqttSettings) {
 				// todo: get the bootstrap sliders to work:
 				document.getElementById('nav-mqtt-tab').setAttribute('data-visible', true);
+				document.getElementById('mqttBaseTopic').value = mqttSettings.baseTopic;
+				document.getElementById('mqttBaseTopic').setAttribute('maxlength', mqttSettings.maxBaseTopicLength);
+				document.getElementById('mqttDeviceId').value = mqttSettings.deviceId;
+				document.getElementById('mqttDeviceId').setAttribute('maxlength', mqttSettings.maxDeviceIdLength);
 				document.getElementById('mqttEnable').checked = mqttSettings.enable;
 				document.getElementById('mqttClientId').value = mqttSettings.clientID;
 				document.getElementById('mqttClientId').setAttribute('maxlength', mqttSettings.maxClientIdLength);
@@ -2472,6 +2488,16 @@
 				document.getElementById('mqttPwd').value = mqttSettings.password;
 				document.getElementById('mqttPwd').setAttribute('maxlength', mqttSettings.maxPwdLength);
 				document.getElementById('mqttPort').value = mqttSettings.port;
+				// Hidden field with MAC without colons & uppercase for MQTT preview
+				var macField = document.getElementById('macAddress');
+				if (!macField) {
+					macField = document.createElement('input');
+					macField.type = 'hidden';
+					macField.id = 'macAddress';
+					document.getElementById('mqttConfig').appendChild(macField);
+				}
+				macField.value = mqttSettings.macAddressPlain;
+				if (typeof updateMqttTopicsPreview === 'function') updateMqttTopicsPreview();
 			}
 			// bluetooth
 			let btSettings = settings.bluetooth;
@@ -2830,6 +2856,8 @@
 				"mqtt": {
 					enable: val,
 					clientID: document.getElementById('mqttClientId').value,
+					deviceId: document.getElementById('mqttDeviceId').value,
+					baseTopic: document.getElementById('mqttBaseTopic').value,
 					server: document.getElementById('mqttServer').value,
 					username: document.getElementById('mqttUser').value,
 					password: document.getElementById('mqttPwd').value,
@@ -2857,6 +2885,81 @@
 				return str.substr(0, str.length - 1);
 			}
 			return str;
+		}
+
+		function buildMqttTopic(base, device, topic, isState) {
+			var dev = device && device.length ? device : (document.getElementById('mqttClientId') ? document.getElementById('mqttClientId').value : 'UNKNOWN');
+			var setterToken = 'set';
+			if (base && base.length) {
+				return base + '/' + dev + '/' + topic + (isState ? '' : '/' + setterToken);
+			} else {
+				return dev + '/' + topic + (isState ? '' : '/' + setterToken);
+			}
+		}
+
+		function updateMqttTopicsPreview() {
+			// Create preview UI if not present (helps when management.html wasn't updated)
+			var previewEl = document.getElementById('mqttTopicsPreview');
+			if (!previewEl) {
+				var field = document.createElement('fieldset');
+				field.className = 'mb-3';
+				var leg = document.createElement('legend');
+				leg.setAttribute('data-i18n', 'mqtt.topics.preview');
+				field.appendChild(leg);
+				previewEl = document.createElement('pre');
+				previewEl.id = 'mqttTopicsPreview';
+				previewEl.style.whiteSpace = 'pre-wrap';
+				field.appendChild(previewEl);
+				var port = document.getElementById('mqttPort');
+				if (port && port.parentNode) {
+					// Insert after the parent container of the port input
+					var parent = port.parentNode;
+					parent.parentNode.insertBefore(field, parent.nextSibling);
+				} else {
+					var cfg = document.getElementById('mqttConfig');
+					if (cfg) cfg.appendChild(field);
+					else document.body.appendChild(field);
+				}
+				if (typeof locI18Next !== 'undefined') locI18Next.translate([field]);
+			}
+			var base = document.getElementById('mqttBaseTopic') ? document.getElementById('mqttBaseTopic').value.trim() : '';
+			var device = document.getElementById('mqttDeviceId') ? document.getElementById('mqttDeviceId').value.trim() : '';
+			if (!device && document.getElementById('mqttClientId')) device = document.getElementById('mqttClientId').value.trim();
+
+			// Get MAC address and replace <MAC> placeholder. Use only hidden DOM field for MAC (upper-case, no colons).
+			var macAddress = document.getElementById('macAddress') ? document.getElementById('macAddress').value.trim().toUpperCase() : 'AABBCCDDEEFF';
+			device = device.replace(/<MAC>/gi, macAddress);
+
+			// Static list of known topics (mirrors firmware settings.h)
+			var commandTopics = ['sleep', 'rfid', 'trackcontrol', 'loudness', 'sleep_timer', 'lock_controls', 'repeatmode', 'led_brightness'];
+			var stateTopics = ['track', 'cover_changed', 'state', 'ipv4', 'pauseplay', 'playmode', 'wifi_rssi', 'software_revision'];
+
+			// Combine command and state topics
+			var allTopics = commandTopics.concat(stateTopics);
+
+			var lines = [];
+			commandTopics.forEach(function (val) {
+				var t = buildMqttTopic(base, device, val, false);
+				// Escape HTML to prevent <MAC> from being treated as HTML tag
+				lines.push('Command: ' + escapeHtml(val) + ' -&gt; ' + escapeHtml(t));
+			});
+			allTopics.forEach(function (val) {
+				var t = buildMqttTopic(base, device, val, true);
+				lines.push('State: ' + escapeHtml(val) + ' -&gt; ' + escapeHtml(t));
+			});
+			previewEl.innerHTML = lines.join('<br>') || 'No topics configured';
+		}
+
+		// Helper function to escape HTML
+		function escapeHtml(text) {
+			var map = {
+				'&': '&amp;',
+				'<': '&lt;',
+				'>': '&gt;',
+				'"': '&quot;',
+				"'": '&#039;'
+			};
+			return text.replace(/[&<>"']/g, function (m) { return map[m]; });
 		}
 
 		function rfidAssign(clickedId) {
@@ -3137,6 +3240,16 @@
 		$(document).ready(function () {
 			connect();
 			buildFileSystemTree("/");
+			// insert MQTT topics preview if not present
+			if ($('#mqttTopicsPreview').length === 0) {
+				var preview = $('<fieldset class="mb-3"><legend data-i18n="mqtt.topics.preview"></legend><pre id="mqttTopicsPreview" style="white-space:pre-wrap;"></pre></fieldset>');
+				$('#mqttConfig form .text-center').first().before(preview);
+			}
+			// Bind live update when relevant mqtt fields change
+			$('#mqttBaseTopic, #mqttDeviceId, #mqttClientId').off('input.mqttPreview').on('input.mqttPreview', function () {
+				if (typeof updateMqttTopicsPreview === 'function') updateMqttTopicsPreview();
+			});
+			if (typeof updateMqttTopicsPreview === 'function') updateMqttTopicsPreview();
 			$('#deleteSSIDModal').on('show.bs.modal', function (event) {
 				var ssid = $(event.relatedTarget).data('ssid')
 				$(this).find('.modal-title').text(i18next.t("wifi.delete.title"));

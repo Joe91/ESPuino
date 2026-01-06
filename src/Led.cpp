@@ -168,7 +168,7 @@ void Led_Init(void) {
 	xTaskCreatePinnedToCore(
 		Led_Task, /* Function to implement the task */
 		"Led_Task", /* Name of the task */
-		3072, /* Stack size in words */
+		3072, /* Stack size in words */ // 20251015: increased to 3072 because saving of "allgemeine Einstellungen" let to restarts because of stack overflows
 		NULL, /* Task input parameter */
 		1, /* Priority of the task */
 		&Led_TaskHandle, /* Task handle. */
@@ -240,7 +240,7 @@ void Led_SetBrightness(uint8_t value) {
 	#endif
 
 	#ifdef MQTT_ENABLE
-	publishMqtt(topicLedBrightnessState, static_cast<uint32_t>(gLedSettings.Led_Brightness), false);
+	publishMqtt(topicLedBrightness, static_cast<uint32_t>(gLedSettings.Led_Brightness), false);
 	#endif
 #endif
 }
@@ -599,6 +599,7 @@ static void Led_Task(void *parameter) {
 			animationActive = false;
 			animationTimer = 0;
 		}
+
 		// get the time to wait and delay the task
 		if ((animationTimer > 0) && (animationTimer < taskDelay)) {
 			taskDelay = animationTimer;
