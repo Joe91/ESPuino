@@ -820,22 +820,74 @@ bool JSONToSettings(JsonObject doc) {
 	if (doc["mqtt"].is<JsonObject>()) {
 		uint8_t _mqttEnable = doc["mqtt"]["enable"].as<uint8_t>();
 		const char *_mqttClientId = doc["mqtt"]["clientID"];
+		const char *_mqttDeviceId = doc["mqtt"]["deviceId"];
+		const char *_mqttBaseTopic = doc["mqtt"]["baseTopic"];
 		const char *_mqttServer = doc["mqtt"]["server"];
 		const char *_mqttUser = doc["mqtt"]["username"];
 		const char *_mqttPwd = doc["mqtt"]["password"];
 		uint16_t _mqttPort = doc["mqtt"]["port"].as<uint16_t>();
 
+		// Sanitize and validate inputs
+		String mqttClientIdStr = String(_mqttClientId);
+		String mqttDeviceIdStr = String(_mqttDeviceId);
+		String mqttBaseTopicStr = String(_mqttBaseTopic);
+
+		// sanitize base topic (trim slashes and whitespace)
+		mqttBaseTopicStr.trim();
+		while (mqttBaseTopicStr.startsWith("/")) {
+			mqttBaseTopicStr = mqttBaseTopicStr.substring(1);
+		}
+		while (mqttBaseTopicStr.endsWith("/")) {
+			mqttBaseTopicStr = mqttBaseTopicStr.substring(0, mqttBaseTopicStr.length() - 1);
+		}
+		if (mqttBaseTopicStr.length() >= mqttBaseTopicLength) {
+			Log_Printf(LOGLEVEL_ERROR, webSaveSettingsError, "mqtt.baseTopic too long");
+			return false;
+		}
+
+		// validate device id (must not be empty and must not contain '/')
+		mqttDeviceIdStr.trim();
+		if (mqttDeviceIdStr.length() == 0) {
+			Log_Printf(LOGLEVEL_ERROR, webSaveSettingsError, "mqtt.deviceId empty");
+			return false;
+		}
+		if (mqttDeviceIdStr.indexOf('/') >= 0) {
+			Log_Printf(LOGLEVEL_ERROR, webSaveSettingsError, "mqtt.deviceId contains invalid char '/'");
+			return false;
+		}
+		if (mqttDeviceIdStr.length() >= mqttDeviceIdLength) {
+			Log_Printf(LOGLEVEL_ERROR, webSaveSettingsError, "mqtt.deviceId too long");
+			return false;
+		}
+
+		// store sanitized values
 		gPrefsSettings.putUChar("enableMQTT", _mqttEnable);
-		gPrefsSettings.putString("mqttClientId", (String) _mqttClientId);
+		gPrefsSettings.putString("mqttClientId", mqttClientIdStr);
+		gPrefsSettings.putString("mqttDeviceId", mqttDeviceIdStr);
+		gPrefsSettings.putString("mqttBaseTopic", mqttBaseTopicStr);
 		gPrefsSettings.putString("mqttServer", (String) _mqttServer);
 		gPrefsSettings.putString("mqttUser", (String) _mqttUser);
 		gPrefsSettings.putString("mqttPassword", (String) _mqttPwd);
 		gPrefsSettings.putUInt("mqttPort", _mqttPort);
 
-		if ((gPrefsSettings.getUChar("enableMQTT", 99) != _mqttEnable) || (!String(_mqttServer).equals(gPrefsSettings.getString("mqttServer", "-1")))) {
+		// verify writes (include deviceId and baseTopic)
+		if ((gPrefsSettings.getUChar("enableMQTT", 99) != _mqttEnable) || (!String(_mqttServer).equals(gPrefsSettings.getString("mqttServer", "-1"))) || (!mqttBaseTopicStr.equals(gPrefsSettings.getString("mqttBaseTopic", "-1"))) || (!mqttDeviceIdStr.equals(gPrefsSettings.getString("mqttDeviceId", "-1")))) {
 			Log_Printf(LOGLEVEL_ERROR, webSaveSettingsError, "mqtt");
 			return false;
 		}
+
+		// update runtime globals
+		String resolvedDeviceId = mqttDeviceIdStr;
+		if (resolvedDeviceId.indexOf("<MAC>") >= 0 || resolvedDeviceId.indexOf("<mac>") >= 0) {
+			String mac = Wlan_GetMacAddress();
+			mac.replace(":", "");
+			mac.toUpperCase();
+			if (mac.length() > 0) {
+				resolvedDeviceId.replace("<MAC>", mac);
+				resolvedDeviceId.replace("<mac>", mac);
+			}
+		}
+		// don't set globals here, restart or recall of Mqtt_Init() will do, but 2nd once might not work this way
 	}
 	if (doc["bluetooth"].is<JsonObject>()) {
 		// bluetooth settings
@@ -1023,7 +1075,7 @@ static void settingsToJSON(JsonObject obj, const String section) {
 		buttonsObj["long1"].set(gPrefsSettings.getUChar("btnLong1", BUTTON_1_LONG));
 		buttonsObj["long2"].set(gPrefsSettings.getUChar("btnLong2", BUTTON_2_LONG));
 		buttonsObj["long3"].set(gPrefsSettings.getUChar("btnLong3", BUTTON_3_LONG));
-		buttonsObj["long4"].set(gPrefsSettings.getUChar("bttLong4", BUTTON_4_LONG));
+		buttonsObj["long4"].set(gPrefsSettings.getUChar("btnLong4", BUTTON_4_LONG));
 		buttonsObj["long5"].set(gPrefsSettings.getUChar("btnLong5", BUTTON_5_LONG));
 		buttonsObj["multi01"].set(gPrefsSettings.getUChar("btnMulti01", BUTTON_MULTI_01));
 		buttonsObj["multi02"].set(gPrefsSettings.getUChar("btnMulti02", BUTTON_MULTI_02));
@@ -1181,7 +1233,13 @@ static void settingsToJSON(JsonObject obj, const String section) {
 	if ((section == "") || (section == "mqtt")) {
 		JsonObject mqttObj = obj["mqtt"].to<JsonObject>();
 		mqttObj["enable"].set(Mqtt_IsEnabled());
+		String macPlain = Wlan_GetMacAddress(); // returns AA:BB:CC:DD:EE:FF or empty
+		macPlain.replace(":", "");
+		macPlain.toUpperCase();
+		mqttObj["macAddressPlain"] = macPlain;
 		mqttObj["clientID"] = gPrefsSettings.getString("mqttClientId", "-1");
+		mqttObj["deviceId"] = gPrefsSettings.getString("mqttDeviceId", "-1");
+		mqttObj["baseTopic"] = gPrefsSettings.getString("mqttBaseTopic", "-1");
 		mqttObj["server"] = gPrefsSettings.getString("mqttServer", "-1");
 		mqttObj["port"].set(gPrefsSettings.getUInt("mqttPort", 0));
 		mqttObj["username"] = gPrefsSettings.getString("mqttUser", "-1");
@@ -1190,6 +1248,8 @@ static void settingsToJSON(JsonObject obj, const String section) {
 		mqttObj["maxPwdLength"].set(mqttPasswordLength - 1);
 		mqttObj["maxClientIdLength"].set(mqttClientIdLength - 1);
 		mqttObj["maxServerLength"].set(mqttServerLength - 1);
+		mqttObj["maxBaseTopicLength"].set(mqttBaseTopicLength - 1);
+		mqttObj["maxDeviceIdLength"].set(mqttDeviceIdLength - 1);
 	}
 #endif
 // Bluetooth
@@ -2506,8 +2566,8 @@ static void handleCoverImageRequest(AsyncWebServerRequest *request) {
 		coverFile.seek(8);
 		coverFile.readBytes(fileType, 3);
 		if (strncmp(fileType, "M4A", 3) == 0) {
-			// M4A header found, seek to image start position. Image length adjustment seems to be not needed, every browser shows cover image correct!
-			coverFile.seek(gPlayProperties.coverFilePos + 8);
+			strcpy(mimeType, "application/octet-stream");
+			coverFile.seek(gPlayProperties.coverFilePos);
 		}
 	}
 	if (strncmp(mimeType, "image", 5) != 0 && strncmp(mimeType, "application/octet-stream", 24) != 0) {
