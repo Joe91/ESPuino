@@ -26,7 +26,7 @@ static esp_mqtt_client_handle_t mqtt_client = NULL;
 // Please note: all of them are defaults that can be changed later via GUI
 String gBaseTopic = ""; // Base topic for MQTT (if not found in NVS this one will be taken)
 String gDeviceId = device_id; // Device ID that is used for MQTT (if not found in NVS this one will be taken)
-String gMqttClientId = gDeviceId; // ClientId for the MQTT-server, must be server wide unique (if not found in NVS this one will be taken)
+String gMqttClientId = device_id; // ClientId for the MQTT-server, must be server wide unique (if not found in NVS this one will be taken)
 String gMqttServer = "192.168.2.43"; // IP-address of MQTT-server (if not found in NVS this one will be taken)
 String gMqttUser = "mqtt-user"; // MQTT-user
 String gMqttPassword = "mqtt-password"; // MQTT-password
@@ -83,27 +83,25 @@ void Mqtt_Init() {
 
 	// Get MQTT-clientid / device id from NVS
 	String nvsMqttDeviceId = gPrefsSettings.getString("mqttDeviceId", "-1");
-	if (!nvsMqttDeviceId.compareTo("-1")) {
+	if (!nvsMqttDeviceId.compareTo("-1") || nvsMqttDeviceId.length() == 0) {
 		// not found: store default (from settings.h) and persist
 		gPrefsSettings.putString("mqttDeviceId", gDeviceId);
-		Log_Println(wroteMqttClientIdToNvs, LOGLEVEL_ERROR);
+		gDeviceId = ReplaceMacToken(gDeviceId);
 	} else {
 		// If device id contains <MAC> it'll be replaced
 		gDeviceId = ReplaceMacToken(nvsMqttDeviceId);
-		// If unresolved/empty after replacement fallback to compile-time default
-		if (gDeviceId.length() == 0) {
-			Log_Printf(LOGLEVEL_NOTICE, "restored mqttDeviceId resolved to empty, using default");
-			gDeviceId = device_id;
-		}
-		Log_Printf(LOGLEVEL_INFO, restoredMqttClientIdFromNvs, nvsMqttDeviceId.c_str());
 	}
 
 	// Also make sure client id follows device id if not set explicitly
 	String nvsMqttClientId = gPrefsSettings.getString("mqttClientId", "-1");
-	if (!nvsMqttClientId.compareTo("-1")) {
+	if (!nvsMqttClientId.compareTo("-1") || nvsMqttClientId.length() == 0) {
+		// not found: store default (from settings.h) and persist
 		gPrefsSettings.putString("mqttClientId", gMqttClientId);
+		gMqttClientId = ReplaceMacToken(gMqttClientId);
+		Log_Println(wroteMqttClientIdToNvs, LOGLEVEL_INFO);
 	} else {
-		gMqttClientId = nvsMqttClientId;
+		gMqttClientId = ReplaceMacToken(nvsMqttClientId);
+		Log_Printf(LOGLEVEL_INFO, restoredMqttClientIdFromNvs, nvsMqttClientId.c_str());
 	}
 
 	// Get MQTT-server from NVS

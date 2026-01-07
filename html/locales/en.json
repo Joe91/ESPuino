@@ -262,7 +262,7 @@
 		"enable": "Enable MQTT",
 		"clientId": {
 			"title": "MQTT-ClientId",
-			"placeholder": "f.e. ESPuino",
+			"placeholder": "f.e. ESPuino-<MAC>",
 			"validation": ""
 		},
 		"server": {
