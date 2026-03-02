@@ -525,7 +525,7 @@ void Mqtt_ClientCallback(const char *topic_buf, uint32_t topic_length, const cha
 		}
 
 		// Ambient Light
-		else if (topic_str == topicAmbientLight) {
+		else if (reduced_topic_str == topicAmbientLight) {
 			if (payload_str == "OFF" || payload_str == "0") {
 				Led_SetAmbientLight(false);
 			} else if (payload_str == "ON" || payload_str == "1") {
