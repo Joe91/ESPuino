@@ -117,8 +117,8 @@ bool Led_LoadSettings(LedSettings &settings) {
 	settings.progressHueStart = gPrefsSettings.getShort("hueStart", PROGRESS_HUE_START);
 	settings.progressHueEnd = gPrefsSettings.getShort("hueEnd", PROGRESS_HUE_END);
 	// get atmo light from NVS
-	settings.atmoHue = gPrefsSettings.getShort("hueAtmo", PROGRESS_HUE_START);
-	settings.atmoSaturation = gPrefsSettings.getShort("satAtmo", PROGRESS_HUE_END);
+	settings.atmoHue = gPrefsSettings.getShort("hueAtmo", ATMO_HUE);
+	settings.atmoSaturation = gPrefsSettings.getShort("satAtmo", ATMO_SATURATION);
 
 	// get reverse rotation from NVS
 	#ifdef NEOPIXEL_REVERSE_ROTATION
