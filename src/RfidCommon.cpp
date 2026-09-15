@@ -43,6 +43,9 @@ void Rfid_PreferenceLookupHandler(void) {
 		}
 		if (!s.compareTo("-1")) {
 			Log_Println(rfidTagUnknownInNvs, LOGLEVEL_ERROR);
+	#ifdef MQTT_ENABLE
+			publishMqtt(topicRfid, gCurrentRfidTagId, false); // Publish unknown RFID to MQTT so that it can be handled by the user
+	#endif
 			System_IndicateError();
 			// allow to escape from bluetooth mode with an unknown card, switch back to normal mode
 			System_SetOperationMode(OPMODE_NORMAL);
